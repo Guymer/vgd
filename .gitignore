@@ -1,0 +1,26 @@
+# OS generated files ...
+.directory
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Hide compiled code ...
+__pycache__
+
+# Hide output of PyLint/ShellCheck ...
+pylint.log
+shellcheck.log
+
+# Ignore compiler generated files ...
+*.mod
+*.o
+*.so
+*.so.dSYM
+src/main
+
+# Hide large datasets ...
+*.bin
