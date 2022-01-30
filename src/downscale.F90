@@ -58,7 +58,7 @@ PROGRAM main
 
         ! Determine file name and skip if it exists ...
         WRITE(fname, fmt = '("../data/scale=", i2.2, "km.bin")') scale
-        INQUIRE(file = fname, exist = fexist)
+        INQUIRE(file = TRIM(fname), exist = fexist)
         IF(fexist)THEN
             WRITE(fmt = '("Skipping ", i2, "km.")', unit = OUTPUT_UNIT) scale
             FLUSH(unit = OUTPUT_UNIT)
