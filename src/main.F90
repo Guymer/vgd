@@ -99,7 +99,7 @@ PROGRAM main
                 END IF
 
                 IF(ixNew == ix .AND. iyNew == iy)THEN
-                    WRITE(*, *) "got back to start"
+                    WRITE(*, *) "got back to start after", step, "steps"
                     EXIT
                 END IF
 
@@ -143,7 +143,7 @@ PROGRAM main
                 STOP
             END DO
 
-            WRITE(*, *) "finished first LinearRing", step
+            WRITE(*, *) "finished LinearRing"
             STOP
         END DO
     END DO
