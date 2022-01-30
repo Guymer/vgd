@@ -20,6 +20,7 @@ shellcheck.log
 *.o
 *.so
 *.so.dSYM
+src/downscale
 src/vectorise
 
 # Hide large datasets ...

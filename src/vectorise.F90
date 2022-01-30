@@ -44,7 +44,7 @@ PROGRAM main
 
     ! Allocate (1.74 GiB) array and populate it ...
     CALL sub_allocate_array(elev, "elev", nx, ny, .TRUE._INT8)
-    CALL sub_load_array_from_BIN(elev, "../all10g.bin")                         ! [m]
+    CALL sub_load_array_from_BIN(elev, "../data/scale=01km.bin")                         ! [m]
 
     ! Allocate (889.89 MiB) array and initialize it to say that no pixels have
     ! been used so far  ...

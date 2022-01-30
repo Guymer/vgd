@@ -57,7 +57,8 @@ clean:				$(RM)
 	$(MAKE) -r -C $(FTNLIB) clean
 
 # "gmake compile" = compiles the code
-compile:			vectorise
+compile:			downscale													\
+					vectorise
 
 # "gmake help"    = print this help
 help:				$(GREP)														\
@@ -93,12 +94,26 @@ mod_funcs.o:	$(FC)															\
 				$(MOD_FUNCS_SRC)
 	$(FC) -c $(LANG_OPTS) $(WARN_OPTS) $(OPTM_OPTS) $(MACH_OPTS) -I$(FTNLIB) mod_funcs.F90
 
-vectorise.o:			$(FC)															\
+downscale.o:	$(FC)															\
+				Makefile														\
+				$(FTNLIB)/mod_safe.mod											\
+				mod_funcs.mod													\
+				downscale.F90
+	$(FC) -c $(LANG_OPTS) $(WARN_OPTS) $(OPTM_OPTS) $(MACH_OPTS) -I$(FTNLIB) downscale.F90 -o $@
+
+vectorise.o:	$(FC)															\
 				Makefile														\
 				$(FTNLIB)/mod_safe.mod											\
 				mod_funcs.mod													\
 				vectorise.F90
 	$(FC) -c $(LANG_OPTS) $(WARN_OPTS) $(OPTM_OPTS) $(MACH_OPTS) -I$(FTNLIB) vectorise.F90 -o $@
+
+downscale:		$(FC)															\
+				Makefile														\
+				$(FTNLIB)/mod_safe.o											\
+				mod_funcs.o														\
+				downscale.o
+	$(FC) $(LANG_OPTS) $(WARN_OPTS) $(OPTM_OPTS) $(MACH_OPTS) downscale.o $(FTNLIB)/mod_safe.o mod_funcs.o -L$(LIBDIR) -o $@
 
 vectorise:			$(FC)															\
 				Makefile														\
