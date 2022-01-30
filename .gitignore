@@ -25,3 +25,4 @@ src/vectorise
 
 # Hide large datasets ...
 *.bin
+*.png
