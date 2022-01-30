@@ -10,16 +10,18 @@ PROGRAM main
     INTEGER(kind = INT16), PARAMETER                                            :: z = 5000_INT16
     INTEGER(kind = INT64), PARAMETER                                            :: nx = 43200_INT64
     INTEGER(kind = INT64), PARAMETER                                            :: ny = 21600_INT64
+    INTEGER(kind = INT64), PARAMETER                                            :: stepMax = 1000_INT64
 
     ! Declare variables ...
     LOGICAL(kind = INT8), ALLOCATABLE, DIMENSION(:, :)                          :: used
     INTEGER(kind = INT16), ALLOCATABLE, DIMENSION(:, :)                         :: elev
     INTEGER(kind = INT64)                                                       :: ix
     INTEGER(kind = INT64)                                                       :: iy
-    INTEGER(kind = INT64)                                                       :: ixnew
-    INTEGER(kind = INT64)                                                       :: iynew
-    INTEGER(kind = INT64)                                                       :: ixold
-    INTEGER(kind = INT64)                                                       :: iyold
+    INTEGER(kind = INT64)                                                       :: ixNew
+    INTEGER(kind = INT64)                                                       :: iyNew
+    INTEGER(kind = INT64)                                                       :: ixOld
+    INTEGER(kind = INT64)                                                       :: iyOld
+    INTEGER(kind = INT64)                                                       :: step
     REAL(kind = REAL64), ALLOCATABLE, DIMENSION(:)                              :: x
     REAL(kind = REAL64), ALLOCATABLE, DIMENSION(:)                              :: y
 
@@ -80,61 +82,68 @@ PROGRAM main
 
             ! ******************************************************************
 
-            ixold = ix
-            iyold = iy
-            used(ixold, iyold) = .TRUE._INT8
-            WRITE(*, *) "file", x(ixold), y(iyold)
+            ixOld = ix
+            iyOld = iy
+            used(ixOld, iyOld) = .TRUE._INT8
+            WRITE(*, *) "file", x(ixOld), y(iyOld)
 
-            CALL sub_go_east(ixold, iyold, ixnew, iynew)
-            WRITE(*, *) "file", x(ixnew), y(iynew)
+            CALL sub_go_east(ixOld, iyOld, ixNew, iyNew)
+            WRITE(*, *) "file", x(ixNew), y(iyNew)
 
+            step = 0_INT64
             DO
-                IF(ixnew == ix .AND. iynew == iy)THEN
+                step = step + 1_INT64
+                IF(step >= stepMax)THEN
+                    WRITE(*, *) "ERROR: too many steps"
+                    STOP
+                END IF
+
+                IF(ixNew == ix .AND. iyNew == iy)THEN
                     WRITE(*, *) "got back to start"
                     EXIT
                 END IF
 
-                IF(ixnew == ixold .AND. iynew == iyold + 1_INT64)THEN
-                    ixold = ixnew
-                    iyold = iynew
-                    CALL sub_going_north(ixold, iyold, elev, z, ixnew, iynew)
-                    used(ixnew, iynew) = .TRUE._INT8
-                    WRITE(*, *) "file", x(ixnew), y(iynew)
+                IF(ixNew == ixOld .AND. iyNew == iyOld + 1_INT64)THEN
+                    ixOld = ixNew
+                    iyOld = iyNew
+                    CALL sub_going_north(ixOld, iyOld, elev, z, ixNew, iyNew)
+                    used(ixNew, iyNew) = .TRUE._INT8
+                    WRITE(*, *) "file", x(ixNew), y(iyNew)
                     CYCLE
                 END IF
 
-                IF(ixnew == ixold + 1_INT64 .AND. iynew == iyold)THEN
-                    ixold = ixnew
-                    iyold = iynew
-                    CALL sub_going_east(ixold, iyold, elev, z, ixnew, iynew)
-                    used(ixnew, iynew) = .TRUE._INT8
-                    WRITE(*, *) "file", x(ixnew), y(iynew)
+                IF(ixNew == ixOld + 1_INT64 .AND. iyNew == iyOld)THEN
+                    ixOld = ixNew
+                    iyOld = iyNew
+                    CALL sub_going_east(ixOld, iyOld, elev, z, ixNew, iyNew)
+                    used(ixNew, iyNew) = .TRUE._INT8
+                    WRITE(*, *) "file", x(ixNew), y(iyNew)
                     CYCLE
                 END IF
 
-                IF(ixnew == ixold .AND. iynew == iyold - 1_INT64)THEN
-                    ixold = ixnew
-                    iyold = iynew
-                    CALL sub_going_south(ixold, iyold, elev, z, ixnew, iynew)
-                    used(ixnew, iynew) = .TRUE._INT8
-                    WRITE(*, *) "file", x(ixnew), y(iynew)
+                IF(ixNew == ixOld .AND. iyNew == iyOld - 1_INT64)THEN
+                    ixOld = ixNew
+                    iyOld = iyNew
+                    CALL sub_going_south(ixOld, iyOld, elev, z, ixNew, iyNew)
+                    used(ixNew, iyNew) = .TRUE._INT8
+                    WRITE(*, *) "file", x(ixNew), y(iyNew)
                     CYCLE
                 END IF
 
-                IF(ixnew == ixold - 1_INT64 .AND. iynew == iyold)THEN
-                    ixold = ixnew
-                    iyold = iynew
-                    CALL sub_going_west(ixold, iyold, elev, z, ixnew, iynew)
-                    used(ixnew, iynew) = .TRUE._INT8
-                    WRITE(*, *) "file", x(ixnew), y(iynew)
+                IF(ixNew == ixOld - 1_INT64 .AND. iyNew == iyOld)THEN
+                    ixOld = ixNew
+                    iyOld = iyNew
+                    CALL sub_going_west(ixOld, iyOld, elev, z, ixNew, iyNew)
+                    used(ixNew, iyNew) = .TRUE._INT8
+                    WRITE(*, *) "file", x(ixNew), y(iyNew)
                     CYCLE
                 END IF
 
-                WRITE(*, *) "should not get here"
+                WRITE(*, *) "ERROR: should not get here"
                 STOP
             END DO
 
-            WRITE(*, *) "finished first LinearRing"
+            WRITE(*, *) "finished first LinearRing", step
             STOP
         END DO
     END DO

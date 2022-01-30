@@ -1,15 +1,15 @@
-PURE SUBROUTINE sub_go_north(ixold, iyold, ixnew, iynew)
+PURE SUBROUTINE sub_go_north(ixOld, iyOld, ixNew, iyNew)
     USE ISO_FORTRAN_ENV
 
     IMPLICIT NONE
 
     ! Declare inputs ...
-    INTEGER(kind = INT64), INTENT(in)                                           :: ixold
-    INTEGER(kind = INT64), INTENT(in)                                           :: iyold
-    INTEGER(kind = INT64), INTENT(out)                                          :: ixnew
-    INTEGER(kind = INT64), INTENT(out)                                          :: iynew
+    INTEGER(kind = INT64), INTENT(in)                                           :: ixOld
+    INTEGER(kind = INT64), INTENT(in)                                           :: iyOld
+    INTEGER(kind = INT64), INTENT(out)                                          :: ixNew
+    INTEGER(kind = INT64), INTENT(out)                                          :: iyNew
 
     ! Move ...
-    ixnew = ixold
-    iynew = iyold + 1_INT64
+    ixNew = ixOld
+    iyNew = iyOld + 1_INT64
 END SUBROUTINE sub_go_north
