@@ -1,6 +1,5 @@
 PROGRAM main
     USE ISO_FORTRAN_ENV
-    USE mod_funcs
     USE mod_safe,           ONLY:   sub_allocate_array,                         &
                                     sub_load_array_from_BIN,                    &
                                     sub_save_array_as_BIN

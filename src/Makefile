@@ -54,7 +54,7 @@ all:				compile
 # "gmake clean"   = removes the compiled code
 clean:				$(RM)
 	$(RM) -f vectorise *.mod *.o
-	$(MAKE) -r -C $(FTNLIB) clean
+	$(MAKE) -r -C $(FTNLIB) FC=$(FC) clean
 
 # "gmake compile" = compiles the code
 compile:			downscale													\
@@ -97,7 +97,6 @@ mod_funcs.o:	$(FC)															\
 downscale.o:	$(FC)															\
 				Makefile														\
 				$(FTNLIB)/mod_safe.mod											\
-				mod_funcs.mod													\
 				downscale.F90
 	$(FC) -c $(LANG_OPTS) $(WARN_OPTS) $(OPTM_OPTS) $(MACH_OPTS) -I$(FTNLIB) downscale.F90 -o $@
 
@@ -111,9 +110,8 @@ vectorise.o:	$(FC)															\
 downscale:		$(FC)															\
 				Makefile														\
 				$(FTNLIB)/mod_safe.o											\
-				mod_funcs.o														\
 				downscale.o
-	$(FC) $(LANG_OPTS) $(WARN_OPTS) $(OPTM_OPTS) $(MACH_OPTS) downscale.o $(FTNLIB)/mod_safe.o mod_funcs.o -L$(LIBDIR) -o $@
+	$(FC) $(LANG_OPTS) $(WARN_OPTS) $(OPTM_OPTS) $(MACH_OPTS) downscale.o $(FTNLIB)/mod_safe.o -L$(LIBDIR) -o $@
 
 vectorise:			$(FC)															\
 				Makefile														\
