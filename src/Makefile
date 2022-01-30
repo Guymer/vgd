@@ -53,11 +53,11 @@ all:				compile
 
 # "gmake clean"   = removes the compiled code
 clean:				$(RM)
-	$(RM) -f main *.mod *.o
+	$(RM) -f vectorise *.mod *.o
 	$(MAKE) -r -C $(FTNLIB) clean
 
 # "gmake compile" = compiles the code
-compile:			main
+compile:			vectorise
 
 # "gmake help"    = print this help
 help:				$(GREP)														\
@@ -93,16 +93,16 @@ mod_funcs.o:	$(FC)															\
 				$(MOD_FUNCS_SRC)
 	$(FC) -c $(LANG_OPTS) $(WARN_OPTS) $(OPTM_OPTS) $(MACH_OPTS) -I$(FTNLIB) mod_funcs.F90
 
-main.o:			$(FC)															\
+vectorise.o:			$(FC)															\
 				Makefile														\
 				$(FTNLIB)/mod_safe.mod											\
 				mod_funcs.mod													\
-				main.F90
-	$(FC) -c $(LANG_OPTS) $(WARN_OPTS) $(OPTM_OPTS) $(MACH_OPTS) -I$(FTNLIB) main.F90 -o $@
+				vectorise.F90
+	$(FC) -c $(LANG_OPTS) $(WARN_OPTS) $(OPTM_OPTS) $(MACH_OPTS) -I$(FTNLIB) vectorise.F90 -o $@
 
-main:			$(FC)															\
+vectorise:			$(FC)															\
 				Makefile														\
 				$(FTNLIB)/mod_safe.o											\
 				mod_funcs.o														\
-				main.o
-	$(FC) $(LANG_OPTS) $(WARN_OPTS) $(OPTM_OPTS) $(MACH_OPTS) main.o $(FTNLIB)/mod_safe.o mod_funcs.o -L$(LIBDIR) -o $@
+				vectorise.o
+	$(FC) $(LANG_OPTS) $(WARN_OPTS) $(OPTM_OPTS) $(MACH_OPTS) vectorise.o $(FTNLIB)/mod_safe.o mod_funcs.o -L$(LIBDIR) -o $@

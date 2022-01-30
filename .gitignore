@@ -20,7 +20,7 @@ shellcheck.log
 *.o
 *.so
 *.so.dSYM
-src/main
+src/vectorise
 
 # Hide large datasets ...
 *.bin
