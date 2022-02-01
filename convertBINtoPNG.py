@@ -43,7 +43,7 @@ for iscale in range(6):
     mega = float((nx // scale) * (ny // scale)) / 1.0e6                         # [Mpx]
 
     # Skip this scale if the PNG would be too big ...
-    if mega > 32.0:
+    if mega > 64.0:
         print(f"Skipping \"{iname}\" (the PNG would be {mega:.1f} Mpx).")
         continue
 
