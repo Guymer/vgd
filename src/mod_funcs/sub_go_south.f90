@@ -11,5 +11,5 @@ PURE SUBROUTINE sub_go_south(ixOld, iyOld, ixNew, iyNew)
 
     ! Move ...
     ixNew = ixOld
-    iyNew = iyOld - 1_INT64
+    iyNew = iyOld + 1_INT64
 END SUBROUTINE sub_go_south

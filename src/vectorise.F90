@@ -2,7 +2,8 @@ PROGRAM main
     USE ISO_FORTRAN_ENV
     USE mod_funcs
     USE mod_safe,           ONLY:   sub_allocate_array,                         &
-                                    sub_load_array_from_BIN
+                                    sub_load_array_from_BIN,                    &
+                                    sub_save_array_as_PGM
 
     IMPLICIT NONE
 
@@ -10,10 +11,11 @@ PROGRAM main
     INTEGER(kind = INT16), PARAMETER                                            :: z = 5000_INT16
     INTEGER(kind = INT64), PARAMETER                                            :: nx = 43200_INT64
     INTEGER(kind = INT64), PARAMETER                                            :: ny = 21600_INT64
-    INTEGER(kind = INT64), PARAMETER                                            :: stepMax = 1000_INT64
+    INTEGER(kind = INT64), PARAMETER                                            :: ringMax = 1024_INT64
+    INTEGER(kind = INT64), PARAMETER                                            :: stepMax = 1024_INT64
 
     ! Declare variables ...
-    LOGICAL(kind = INT8), ALLOCATABLE, DIMENSION(:, :)                          :: used
+    INTEGER(kind = INT8), ALLOCATABLE, DIMENSION(:, :)                          :: used
     INTEGER(kind = INT16), ALLOCATABLE, DIMENSION(:, :)                         :: elev
     INTEGER(kind = INT64)                                                       :: iscale
     INTEGER(kind = INT64)                                                       :: ix
@@ -24,17 +26,21 @@ PROGRAM main
     INTEGER(kind = INT64)                                                       :: iyOld
     INTEGER(kind = INT64)                                                       :: nxScaled
     INTEGER(kind = INT64)                                                       :: nyScaled
+    INTEGER(kind = INT64)                                                       :: ring
     INTEGER(kind = INT64)                                                       :: scale
     INTEGER(kind = INT64)                                                       :: step
     REAL(kind = REAL64), ALLOCATABLE, DIMENSION(:)                              :: x
     REAL(kind = REAL64), ALLOCATABLE, DIMENSION(:)                              :: y
 
     ! Declare FORTRAN variables ...
-    ! CHARACTER(len = 256)                                                        :: errmsg
-    CHARACTER(len = 256)                                                        :: fname
+    CHARACTER(len = 256)                                                        :: errmsg
+    CHARACTER(len = 256)                                                        :: dname
+    CHARACTER(len = 256)                                                        :: fnameBIN
+    CHARACTER(len = 256)                                                        :: fnameCSV
+    CHARACTER(len = 256)                                                        :: fnamePGM
     LOGICAL                                                                     :: fexist
-    ! INTEGER(kind = INT32)                                                       :: errnum
-    ! INTEGER(kind = INT32)                                                       :: funit
+    INTEGER                                                                     :: errnum
+    INTEGER                                                                     :: funit
 
     ! Loop over scales ...
     DO iscale = 0_INT64, 5_INT64
@@ -54,8 +60,8 @@ PROGRAM main
         END IF
 
         ! Determine file name and skip if it is missing ...
-        WRITE(fname, fmt = '("../data/scale=", i2.2, "km.bin")') scale
-        INQUIRE(file = TRIM(fname), exist = fexist)
+        WRITE(fnameBIN, fmt = '("../data/scale=", i2.2, "km.bin")') scale
+        INQUIRE(file = TRIM(fnameBIN), exist = fexist)
         IF(.NOT. fexist)THEN
             WRITE(fmt = '("Skipping ", i2, "km.")', unit = OUTPUT_UNIT) scale
             FLUSH(unit = OUTPUT_UNIT)
@@ -65,8 +71,22 @@ PROGRAM main
         WRITE(fmt = '("Vectorising ", i2, "km ...")', unit = OUTPUT_UNIT) scale
         FLUSH(unit = OUTPUT_UNIT)
 
+        ! HACK
         IF(iscale /= 5_INT64)THEN
             CYCLE
+        END IF
+
+        ! Determine directory name and make it ...
+        WRITE(dname, fmt = '("../data/scale=", i2.2, "km/elev=", i4.4, "m")') scale, z
+        CALL EXECUTE_COMMAND_LINE(                                              &
+            "mkdir -p " // TRIM(dname),                                         &
+              cmdmsg = errmsg,                                                  &
+            exitstat = errnum                                                   &
+        )
+        IF(errnum /= 0)THEN
+            WRITE(fmt = '("ERROR: ", a, ". ERRMSG = ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "mkdir failed", TRIM(errmsg), errnum
+            FLUSH(unit = ERROR_UNIT)
+            STOP
         END IF
 
         ! Create short-hands ...
@@ -76,23 +96,26 @@ PROGRAM main
         ! Allocate array and populate it ...
         CALL sub_allocate_array(x, "x", nxScaled + 1_INT64, .TRUE._INT8)
         DO ix = 0_INT64, nxScaled
-            x(ix + 1_INT64) = 360.0e0_REAL64 * REAL(ix - nxScaled / 2_INT64, kind = REAL64) / REAL(nxScaled, kind = REAL64) ! [°]
+            x(ix + 1_INT64) = 360.0e0_REAL64 * (REAL(ix, kind = REAL64) - 0.5e0_REAL64 * REAL(nxScaled, kind = REAL64)) / REAL(nxScaled, kind = REAL64) ! [°]
         END DO
 
         ! Allocate array and populate it ...
         CALL sub_allocate_array(y, "y", nyScaled + 1_INT64, .TRUE._INT8)
         DO iy = 0_INT64, nyScaled
-            y(iy + 1_INT64) = 180.0e0_REAL64 * REAL(iy - nyScaled / 2_INT64, kind = REAL64) / REAL(nyScaled, kind = REAL64) ! [°]
+            y(iy + 1_INT64) = 180.0e0_REAL64 * (0.5e0_REAL64 * REAL(nyScaled, kind = REAL64) - REAL(iy, kind = REAL64)) / REAL(nyScaled, kind = REAL64) ! [°]
         END DO
 
         ! Allocate array and populate it ...
         CALL sub_allocate_array(elev, "elev", nxScaled, nyScaled, .TRUE._INT8)
-        CALL sub_load_array_from_BIN(elev, TRIM(fname))                         ! [m]
+        CALL sub_load_array_from_BIN(elev, TRIM(fnameBIN))                      ! [m]
 
         ! Allocate array and initialize it to say that no pixels have been used
         ! so far  ...
         CALL sub_allocate_array(used, "used", nxScaled, nyScaled, .TRUE._INT8)
-        used = .FALSE._INT8
+        used = 127_INT8
+
+        ! Initialize counter ...
+        ring = 0_INT64                                                          ! [#]
 
         ! Loop over x-axis ...
         ! NOTE: Do not start in first column as I will do "ix - 1" in a second.
@@ -106,7 +129,7 @@ PROGRAM main
                 END IF
 
                 ! Skip this pixel if it has been used in a previous LinearRing ...
-                IF(used(ix, iy))THEN
+                IF(used(ix, iy) == 0_INT8)THEN
                     CYCLE
                 END IF
 
@@ -121,75 +144,118 @@ PROGRAM main
                     CYCLE
                 END IF
 
-                WRITE(*, *) "starting LinearRing at", x(ix), y(iy)
+                ! Determine file name ...
+                WRITE(fnameCSV, fmt = '("../data/scale=", i2.2, "km/elev=", i4.4, "m/ring=", i6.6, ".csv")') scale, z, ring
 
-                ! ******************************************************************
+                ! Open CSV ...
+                OPEN(                                                           &
+                     action = "WRITE",                                          &
+                       file = TRIM(fnameCSV),                                   &
+                       form = "FORMATTED",                                      &
+                      iomsg = errmsg,                                           &
+                     iostat = errnum,                                           &
+                    newunit = funit,                                            &
+                       sign = "PLUS",                                           &
+                     status = "REPLACE"                                         &
+                )
+                IF(errnum /= 0)THEN
+                    WRITE(fmt = '("ERROR: ", a, ". ERRMSG = ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "failed to open CSV", TRIM(errmsg), errnum
+                    FLUSH(unit = ERROR_UNIT)
+                    STOP
+                END IF
 
-                ixOld = ix
-                iyOld = iy
-                used(ixOld, iyOld) = .TRUE._INT8
-                WRITE(*, *) "file", x(ixOld), y(iyOld)
+                ! Write header ...
+                WRITE(fmt = '(a)', unit = funit) "lon,lat"
+
+                ! **************************************************************
+
+                ixOld = ix                                                      ! [px]
+                iyOld = iy                                                      ! [px]
+                used(ixOld, iyOld) = 0_INT8
+                WRITE(fmt = '(f11.6, ",", f11.6)', unit = funit) x(ixOld), y(iyOld)
 
                 CALL sub_go_east(ixOld, iyOld, ixNew, iyNew)
-                WRITE(*, *) "file", x(ixNew), y(iyNew)
+                WRITE(fmt = '(f11.6, ",", f11.6)', unit = funit) x(ixNew), y(iyNew)
 
-                step = 0_INT64
+                ! Initialize counter ...
+                step = 0_INT64                                                  ! [#]
+
+                ! Start infinite loop ...
                 DO
-                    step = step + 1_INT64
+                    ! Increment counter and crash if too many steps have been made ...
+                    step = step + 1_INT64                                       ! [#]
                     IF(step >= stepMax)THEN
-                        WRITE(*, *) "ERROR: too manyScaled steps"
+                        WRITE(fmt = '("ERROR: ", a, ".")', unit = ERROR_UNIT) "exceeded stepMax"
+                        FLUSH(unit = ERROR_UNIT)
                         STOP
                     END IF
 
                     IF(ixNew == ix .AND. iyNew == iy)THEN
-                        WRITE(*, *) "got back to start after", step, "steps"
+                        WRITE(*, *) "ring", ring, "got back to start after", step, "steps"
                         EXIT
                     END IF
 
-                    IF(ixNew == ixOld .AND. iyNew == iyOld + 1_INT64)THEN
-                        ixOld = ixNew
-                        iyOld = iyNew
+                    IF(ixNew == ixOld .AND. iyNew == iyOld - 1_INT64)THEN
+                        ixOld = ixNew                                           ! [px]
+                        iyOld = iyNew                                           ! [px]
                         CALL sub_going_north(ixOld, iyOld, elev, z, ixNew, iyNew)
-                        used(ixNew, iyNew) = .TRUE._INT8
-                        WRITE(*, *) "file", x(ixNew), y(iyNew)
+                        used(ixNew, iyNew) = 0_INT8
+                        WRITE(fmt = '(f11.6, ",", f11.6)', unit = funit) x(ixNew), y(iyNew)
                         CYCLE
                     END IF
 
                     IF(ixNew == ixOld + 1_INT64 .AND. iyNew == iyOld)THEN
-                        ixOld = ixNew
-                        iyOld = iyNew
+                        ixOld = ixNew                                           ! [px]
+                        iyOld = iyNew                                           ! [px]
                         CALL sub_going_east(ixOld, iyOld, elev, z, ixNew, iyNew)
-                        used(ixNew, iyNew) = .TRUE._INT8
-                        WRITE(*, *) "file", x(ixNew), y(iyNew)
+                        used(ixNew, iyNew) = 0_INT8
+                        WRITE(fmt = '(f11.6, ",", f11.6)', unit = funit) x(ixNew), y(iyNew)
                         CYCLE
                     END IF
 
-                    IF(ixNew == ixOld .AND. iyNew == iyOld - 1_INT64)THEN
-                        ixOld = ixNew
-                        iyOld = iyNew
+                    IF(ixNew == ixOld .AND. iyNew == iyOld + 1_INT64)THEN
+                        ixOld = ixNew                                           ! [px]
+                        iyOld = iyNew                                           ! [px]
                         CALL sub_going_south(ixOld, iyOld, elev, z, ixNew, iyNew)
-                        used(ixNew, iyNew) = .TRUE._INT8
-                        WRITE(*, *) "file", x(ixNew), y(iyNew)
+                        used(ixNew, iyNew) = 0_INT8
+                        WRITE(fmt = '(f11.6, ",", f11.6)', unit = funit) x(ixNew), y(iyNew)
                         CYCLE
                     END IF
 
                     IF(ixNew == ixOld - 1_INT64 .AND. iyNew == iyOld)THEN
-                        ixOld = ixNew
-                        iyOld = iyNew
+                        ixOld = ixNew                                           ! [px]
+                        iyOld = iyNew                                           ! [px]
                         CALL sub_going_west(ixOld, iyOld, elev, z, ixNew, iyNew)
-                        used(ixNew, iyNew) = .TRUE._INT8
-                        WRITE(*, *) "file", x(ixNew), y(iyNew)
+                        used(ixNew, iyNew) = 0_INT8
+                        WRITE(fmt = '(f11.6, ",", f11.6)', unit = funit) x(ixNew), y(iyNew)
                         CYCLE
                     END IF
 
-                    WRITE(*, *) "ERROR: should not get here"
+                    WRITE(fmt = '("ERROR: ", a, ".")', unit = ERROR_UNIT) "should not get here"
+                    FLUSH(unit = ERROR_UNIT)
                     STOP
                 END DO
 
-                WRITE(*, *) "finished LinearRing"
-                STOP
+                ! **************************************************************
+
+                ! Close CSV ...
+                CLOSE(unit = funit)
+
+                ! Increment counter and crash if too many rings have been made ...
+                ring = ring + 1_INT64                                           ! [#]
+                IF(ring >= ringMax)THEN
+                    WRITE(fmt = '("ERROR: ", a, ".")', unit = ERROR_UNIT) "exceeded ringMax"
+                    FLUSH(unit = ERROR_UNIT)
+                    STOP
+                END IF
             END DO
         END DO
+
+        ! Determine file name ...
+        WRITE(fnamePGM, fmt = '("../data/scale=", i2.2, "km/elev=", i4.4, "m.pgm")') scale, z
+
+        ! Save mask ...
+        CALL sub_save_array_as_PGM(used, TRIM(fnamePGM))
 
         ! Clean up ...
         DEALLOCATE(x)
