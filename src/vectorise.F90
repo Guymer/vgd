@@ -11,8 +11,8 @@ PROGRAM main
     INTEGER(kind = INT16), PARAMETER                                            :: z = 5000_INT16
     INTEGER(kind = INT64), PARAMETER                                            :: nx = 43200_INT64
     INTEGER(kind = INT64), PARAMETER                                            :: ny = 21600_INT64
-    INTEGER(kind = INT64), PARAMETER                                            :: ringMax = 1024_INT64
-    INTEGER(kind = INT64), PARAMETER                                            :: stepMax = 1024_INT64
+    INTEGER(kind = INT64), PARAMETER                                            :: ringMax = 1048576_INT64
+    INTEGER(kind = INT64), PARAMETER                                            :: stepMax = 1048576_INT64
 
     ! Declare variables ...
     INTEGER(kind = INT8), ALLOCATABLE, DIMENSION(:, :)                          :: used
@@ -169,11 +169,13 @@ PROGRAM main
 
                 ! **************************************************************
 
+                ! Set initial location ...
                 ixOld = ix                                                      ! [px]
                 iyOld = iy                                                      ! [px]
                 used(ixOld, iyOld) = 0_INT8
                 WRITE(fmt = '(f11.6, ",", f11.6)', unit = funit) x(ixOld), y(iyOld)
 
+                ! Go eastwards along the northern edge of this pixel ...
                 CALL sub_go_east(ixOld, iyOld, ixNew, iyNew)
                 WRITE(fmt = '(f11.6, ",", f11.6)', unit = funit) x(ixNew), y(iyNew)
 
@@ -190,48 +192,67 @@ PROGRAM main
                         STOP
                     END IF
 
+                    ! Stop looping if we are back at the start ...
                     IF(ixNew == ix .AND. iyNew == iy)THEN
-                        WRITE(*, *) "ring", ring, "got back to start after", step, "steps"
+                        WRITE(fmt = '(" > Ring ", i6, " got back to the start after ", i6, " steps.")', unit = OUTPUT_UNIT) ring, step
+                        FLUSH(unit = OUTPUT_UNIT)
                         EXIT
                     END IF
 
+                    ! Check if we went north ...
                     IF(ixNew == ixOld .AND. iyNew == iyOld - 1_INT64)THEN
+                        ! Move location ...
                         ixOld = ixNew                                           ! [px]
                         iyOld = iyNew                                           ! [px]
+
+                        ! Go northwards ...
                         CALL sub_going_north(ixOld, iyOld, elev, z, ixNew, iyNew)
                         used(ixNew, iyNew) = 0_INT8
                         WRITE(fmt = '(f11.6, ",", f11.6)', unit = funit) x(ixNew), y(iyNew)
                         CYCLE
                     END IF
 
+                    ! Check if we went east ...
                     IF(ixNew == ixOld + 1_INT64 .AND. iyNew == iyOld)THEN
+                        ! Move location ...
                         ixOld = ixNew                                           ! [px]
                         iyOld = iyNew                                           ! [px]
+
+                        ! Go eastwards ...
                         CALL sub_going_east(ixOld, iyOld, elev, z, ixNew, iyNew)
                         used(ixNew, iyNew) = 0_INT8
                         WRITE(fmt = '(f11.6, ",", f11.6)', unit = funit) x(ixNew), y(iyNew)
                         CYCLE
                     END IF
 
+                    ! Check if we went south ...
                     IF(ixNew == ixOld .AND. iyNew == iyOld + 1_INT64)THEN
+                        ! Move location ...
                         ixOld = ixNew                                           ! [px]
                         iyOld = iyNew                                           ! [px]
+
+                        ! Go southwards ...
                         CALL sub_going_south(ixOld, iyOld, elev, z, ixNew, iyNew)
                         used(ixNew, iyNew) = 0_INT8
                         WRITE(fmt = '(f11.6, ",", f11.6)', unit = funit) x(ixNew), y(iyNew)
                         CYCLE
                     END IF
 
+                    ! Check if we went west ...
                     IF(ixNew == ixOld - 1_INT64 .AND. iyNew == iyOld)THEN
+                        ! Move location ...
                         ixOld = ixNew                                           ! [px]
                         iyOld = iyNew                                           ! [px]
+
+                        ! Go westwards ...
                         CALL sub_going_west(ixOld, iyOld, elev, z, ixNew, iyNew)
                         used(ixNew, iyNew) = 0_INT8
                         WRITE(fmt = '(f11.6, ",", f11.6)', unit = funit) x(ixNew), y(iyNew)
                         CYCLE
                     END IF
 
-                    WRITE(fmt = '("ERROR: ", a, ".")', unit = ERROR_UNIT) "should not get here"
+                    ! Catch errors ...
+                    WRITE(fmt = '("ERROR: ", a, ".")', unit = ERROR_UNIT) "did not go N/S/E/W"
                     FLUSH(unit = ERROR_UNIT)
                     STOP
                 END DO
