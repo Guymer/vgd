@@ -83,10 +83,10 @@ PROGRAM main
 
             ! Determine directory name and make it ...
             WRITE(dname, fmt = '("../data/scale=", i2.2, "km/elev=", i4.4, "m")') scale, z
-            CALL EXECUTE_COMMAND_LINE(                                              &
-                "mkdir -p " // TRIM(dname),                                         &
-                  cmdmsg = errmsg,                                                  &
-                exitstat = errnum                                                   &
+            CALL EXECUTE_COMMAND_LINE(                                          &
+                "mkdir -p " // TRIM(dname),                                     &
+                  cmdmsg = errmsg,                                              &
+                exitstat = errnum                                               &
             )
             IF(errnum /= 0)THEN
                 WRITE(fmt = '("ERROR: ", a, ". ERRMSG = ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "mkdir failed", TRIM(errmsg), errnum
@@ -95,8 +95,8 @@ PROGRAM main
             END IF
 
             ! Create short-hands ...
-            nxScaled = nx / scale                                                   ! [px]
-            nyScaled = ny / scale                                                   ! [px]
+            nxScaled = nx / scale                                               ! [px]
+            nyScaled = ny / scale                                               ! [px]
 
             ! Allocate array and populate it ...
             CALL sub_allocate_array(x, "x", nxScaled + 1_INT64, .TRUE._INT8)
@@ -112,28 +112,27 @@ PROGRAM main
 
             ! Allocate array and populate it ...
             CALL sub_allocate_array(elev, "elev", nxScaled, nyScaled, .TRUE._INT8)
-            CALL sub_load_array_from_BIN(elev, TRIM(fnameBIN))                      ! [m]
+            CALL sub_load_array_from_BIN(elev, TRIM(fnameBIN))                  ! [m]
 
-            ! Allocate array and initialize it to say that no pixels have been used
-            ! so far  ...
+            ! Allocate array and initialize it to say that no pixels have been
+            ! used so far  ...
             CALL sub_allocate_array(used, "used", nxScaled, nyScaled, .TRUE._INT8)
             used = 127_INT8
 
             ! Initialize counter ...
-            ring = 0_INT64                                                          ! [#]
+            ring = 0_INT64                                                      ! [#]
 
             ! Loop over x-axis ...
-            ! NOTE: Do not start in first column as I will do "ix - 1" in a second.
-            DO ix = 2_INT64, nxScaled
+            DO ix = 2_INT64, nxScaled - 1_INT64
                 ! Loop over y-axis ...
-                ! NOTE: Do not start in first row as I will do "iy - 1" in a second.
-                DO iy = 2_INT64, nyScaled
+                DO iy = 2_INT64, nyScaled - 1_INT64
                     ! Skip this pixel if it is too low ...
                     IF(elev(ix, iy) < z)THEN
                         CYCLE
                     END IF
 
-                    ! Skip this pixel if it has been used in a previous LinearRing ...
+                    ! Skip this pixel if it has been used in a previous
+                    ! LinearRing ...
                     IF(used(ix, iy) == 0_INT8)THEN
                         CYCLE
                     END IF
@@ -153,15 +152,15 @@ PROGRAM main
                     WRITE(fnameCSV, fmt = '("../data/scale=", i2.2, "km/elev=", i4.4, "m/ring=", i6.6, ".csv")') scale, z, ring
 
                     ! Open CSV ...
-                    OPEN(                                                           &
-                         action = "WRITE",                                          &
-                           file = TRIM(fnameCSV),                                   &
-                           form = "FORMATTED",                                      &
-                          iomsg = errmsg,                                           &
-                         iostat = errnum,                                           &
-                        newunit = funit,                                            &
-                           sign = "PLUS",                                           &
-                         status = "REPLACE"                                         &
+                    OPEN(                                                       &
+                         action = "WRITE",                                      &
+                           file = TRIM(fnameCSV),                               &
+                           form = "FORMATTED",                                  &
+                          iomsg = errmsg,                                       &
+                         iostat = errnum,                                       &
+                        newunit = funit,                                        &
+                           sign = "PLUS",                                       &
+                         status = "REPLACE"                                     &
                     )
                     IF(errnum /= 0)THEN
                         WRITE(fmt = '("ERROR: ", a, ". ERRMSG = ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "failed to open CSV", TRIM(errmsg), errnum
@@ -172,11 +171,11 @@ PROGRAM main
                     ! Write header ...
                     WRITE(fmt = '(a)', unit = funit) "lon,lat"
 
-                    ! **************************************************************
+                    ! **********************************************************
 
                     ! Set initial location ...
-                    ixOld = ix                                                      ! [px]
-                    iyOld = iy                                                      ! [px]
+                    ixOld = ix                                                  ! [px]
+                    iyOld = iy                                                  ! [px]
                     used(ixOld, iyOld) = 0_INT8
                     WRITE(fmt = '(f11.6, ",", f11.6)', unit = funit) x(ixOld), y(iyOld)
 
@@ -185,12 +184,13 @@ PROGRAM main
                     WRITE(fmt = '(f11.6, ",", f11.6)', unit = funit) x(ixNew), y(iyNew)
 
                     ! Initialize counter ...
-                    step = 0_INT64                                                  ! [#]
+                    step = 0_INT64                                              ! [#]
 
                     ! Start infinite loop ...
                     DO
-                        ! Increment counter and crash if too many steps have been made ...
-                        step = step + 1_INT64                                       ! [#]
+                        ! Increment counter and crash if too many steps have
+                        ! been made ...
+                        step = step + 1_INT64                                   ! [#]
                         IF(step >= stepMax)THEN
                             WRITE(fmt = '("ERROR: ", a, ".")', unit = ERROR_UNIT) "exceeded stepMax"
                             FLUSH(unit = ERROR_UNIT)
@@ -204,11 +204,24 @@ PROGRAM main
                             EXIT
                         END IF
 
+                        WRITE(*, *) ixNew, nxScaled, iyNew, nyScaled
+
                         ! Check if we went north ...
                         IF(ixNew == ixOld .AND. iyNew == iyOld - 1_INT64)THEN
+                            ! Check if we have hit the northern limit of Earth ...
+                            IF(iyNew == 1_INT64)THEN
+                                ! Move location ...
+                                ixOld = ixNew                                   ! [px]
+                                iyOld = iyNew                                   ! [px]
+
+                                ! Go east ...
+                                CALL sub_go_east(ixOld, iyOld, ixNew, iyNew)
+                                CYCLE
+                            END IF
+
                             ! Move location ...
-                            ixOld = ixNew                                           ! [px]
-                            iyOld = iyNew                                           ! [px]
+                            ixOld = ixNew                                       ! [px]
+                            iyOld = iyNew                                       ! [px]
                             used(ixOld, iyOld) = 0_INT8
 
                             ! Go northwards ...
@@ -219,9 +232,20 @@ PROGRAM main
 
                         ! Check if we went east ...
                         IF(ixNew == ixOld + 1_INT64 .AND. iyNew == iyOld)THEN
+                            ! Check if we have hit the eastern limit of Earth ...
+                            IF(ixNew == nxScaled + 1_INT64)THEN
+                                ! Move location ...
+                                ixOld = ixNew                                   ! [px]
+                                iyOld = iyNew                                   ! [px]
+
+                                ! Go south ...
+                                CALL sub_go_south(ixOld, iyOld, ixNew, iyNew)
+                                CYCLE
+                            END IF
+
                             ! Move location ...
-                            ixOld = ixNew                                           ! [px]
-                            iyOld = iyNew                                           ! [px]
+                            ixOld = ixNew                                       ! [px]
+                            iyOld = iyNew                                       ! [px]
                             used(ixOld - 1_INT64, iyOld) = 0_INT8
 
                             ! Go eastwards ...
@@ -232,9 +256,20 @@ PROGRAM main
 
                         ! Check if we went south ...
                         IF(ixNew == ixOld .AND. iyNew == iyOld + 1_INT64)THEN
+                            ! Check if we have hit the southern limit of Earth ...
+                            IF(iyNew == nyScaled + 1_INT64)THEN
+                                ! Move location ...
+                                ixOld = ixNew                                   ! [px]
+                                iyOld = iyNew                                   ! [px]
+
+                                ! Go west ...
+                                CALL sub_go_west(ixOld, iyOld, ixNew, iyNew)
+                                CYCLE
+                            END IF
+
                             ! Move location ...
-                            ixOld = ixNew                                           ! [px]
-                            iyOld = iyNew                                           ! [px]
+                            ixOld = ixNew                                       ! [px]
+                            iyOld = iyNew                                       ! [px]
                             used(ixOld - 1_INT64, iyOld - 1_INT64) = 0_INT8
 
                             ! Go southwards ...
@@ -245,9 +280,20 @@ PROGRAM main
 
                         ! Check if we went west ...
                         IF(ixNew == ixOld - 1_INT64 .AND. iyNew == iyOld)THEN
+                            ! Check if we have hit the western limit of Earth ...
+                            IF(ixNew == 1_INT64)THEN
+                                ! Move location ...
+                                ixOld = ixNew                                   ! [px]
+                                iyOld = iyNew                                   ! [px]
+
+                                ! Go north ...
+                                CALL sub_go_north(ixOld, iyOld, ixNew, iyNew)
+                                CYCLE
+                            END IF
+
                             ! Move location ...
-                            ixOld = ixNew                                           ! [px]
-                            iyOld = iyNew                                           ! [px]
+                            ixOld = ixNew                                       ! [px]
+                            iyOld = iyNew                                       ! [px]
                             used(ixOld, iyOld - 1_INT64) = 0_INT8
 
                             ! Go westwards ...
@@ -262,13 +308,14 @@ PROGRAM main
                         STOP
                     END DO
 
-                    ! **************************************************************
+                    ! **********************************************************
 
                     ! Close CSV ...
                     CLOSE(unit = funit)
 
-                    ! Increment counter and crash if too many rings have been made ...
-                    ring = ring + 1_INT64                                           ! [#]
+                    ! Increment counter and crash if too many rings have been
+                    ! made ...
+                    ring = ring + 1_INT64                                       ! [#]
                     IF(ring >= ringMax)THEN
                         WRITE(fmt = '("ERROR: ", a, ".")', unit = ERROR_UNIT) "exceeded ringMax"
                         FLUSH(unit = ERROR_UNIT)
