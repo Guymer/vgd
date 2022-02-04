@@ -204,10 +204,10 @@ PROGRAM main
                         ! Move location ...
                         ixOld = ixNew                                           ! [px]
                         iyOld = iyNew                                           ! [px]
+                        used(ixOld, iyOld) = 0_INT8
 
                         ! Go northwards ...
                         CALL sub_going_north(ixOld, iyOld, elev, z, ixNew, iyNew)
-                        used(ixNew, iyNew) = 0_INT8
                         WRITE(fmt = '(f11.6, ",", f11.6)', unit = funit) x(ixNew), y(iyNew)
                         CYCLE
                     END IF
@@ -217,10 +217,10 @@ PROGRAM main
                         ! Move location ...
                         ixOld = ixNew                                           ! [px]
                         iyOld = iyNew                                           ! [px]
+                        used(ixOld - 1_INT64, iyOld) = 0_INT8
 
                         ! Go eastwards ...
                         CALL sub_going_east(ixOld, iyOld, elev, z, ixNew, iyNew)
-                        used(ixNew, iyNew) = 0_INT8
                         WRITE(fmt = '(f11.6, ",", f11.6)', unit = funit) x(ixNew), y(iyNew)
                         CYCLE
                     END IF
@@ -230,10 +230,10 @@ PROGRAM main
                         ! Move location ...
                         ixOld = ixNew                                           ! [px]
                         iyOld = iyNew                                           ! [px]
+                        used(ixOld - 1_INT64, iyOld - 1_INT64) = 0_INT8
 
                         ! Go southwards ...
                         CALL sub_going_south(ixOld, iyOld, elev, z, ixNew, iyNew)
-                        used(ixNew, iyNew) = 0_INT8
                         WRITE(fmt = '(f11.6, ",", f11.6)', unit = funit) x(ixNew), y(iyNew)
                         CYCLE
                     END IF
@@ -243,10 +243,10 @@ PROGRAM main
                         ! Move location ...
                         ixOld = ixNew                                           ! [px]
                         iyOld = iyNew                                           ! [px]
+                        used(ixOld, iyOld - 1_INT64) = 0_INT8
 
                         ! Go westwards ...
                         CALL sub_going_west(ixOld, iyOld, elev, z, ixNew, iyNew)
-                        used(ixNew, iyNew) = 0_INT8
                         WRITE(fmt = '(f11.6, ",", f11.6)', unit = funit) x(ixNew), y(iyNew)
                         CYCLE
                     END IF
