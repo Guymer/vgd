@@ -71,13 +71,13 @@ PROGRAM main
         WRITE(fmt = '("Vectorising ", i2, "km ...")', unit = OUTPUT_UNIT) scale
         FLUSH(unit = OUTPUT_UNIT)
 
-        ! HACK
-        IF(iscale /= 5_INT64)THEN
+        ! Skip this scale if the output would be too big ...
+        IF(iscale < 2_INT64)THEN
             CYCLE
         END IF
 
         ! Loop over elevations ...
-        DO z = 2000_INT16, 9000_INT16, 500_INT16
+        DO z = 500_INT16, 9000_INT16, 500_INT16
             WRITE(fmt = '(" > Searching for elevation of ", i4, "m ...")', unit = OUTPUT_UNIT) z
             FLUSH(unit = OUTPUT_UNIT)
 
@@ -115,7 +115,7 @@ PROGRAM main
             CALL sub_load_array_from_BIN(elev, TRIM(fnameBIN))                  ! [m]
 
             ! HACK: Make sure that none of the plateaus touch the edge of the
-            !       map ...
+            !       map.
             elev( 1_INT64, :) = 0_INT16                                         ! [m]
             elev(nxScaled, :) = 0_INT16                                         ! [m]
             elev(:,  1_INT64) = 0_INT16                                         ! [m]
@@ -184,11 +184,11 @@ PROGRAM main
                     ixOld = ix                                                  ! [px]
                     iyOld = iy                                                  ! [px]
                     used(ixOld, iyOld) = 0_INT8
-                    WRITE(fmt = '(f11.6, ",", f11.6)', unit = funit) x(ixOld), y(iyOld)
+                    WRITE(fmt = '(f8.3, ",", f8.3)', unit = funit) x(ixOld), y(iyOld)
 
                     ! Go eastwards along the northern edge of this pixel ...
                     CALL sub_go_east(ixOld, iyOld, ixNew, iyNew)
-                    WRITE(fmt = '(f11.6, ",", f11.6)', unit = funit) x(ixNew), y(iyNew)
+                    WRITE(fmt = '(f8.3, ",", f8.3)', unit = funit) x(ixNew), y(iyNew)
 
                     ! Initialize counter ...
                     step = 0_INT64                                              ! [#]
@@ -220,7 +220,7 @@ PROGRAM main
 
                             ! Go northwards ...
                             CALL sub_going_north(ixOld, iyOld, elev, z, ixNew, iyNew)
-                            WRITE(fmt = '(f11.6, ",", f11.6)', unit = funit) x(ixNew), y(iyNew)
+                            WRITE(fmt = '(f8.3, ",", f8.3)', unit = funit) x(ixNew), y(iyNew)
                             CYCLE
                         END IF
 
@@ -233,7 +233,7 @@ PROGRAM main
 
                             ! Go eastwards ...
                             CALL sub_going_east(ixOld, iyOld, elev, z, ixNew, iyNew)
-                            WRITE(fmt = '(f11.6, ",", f11.6)', unit = funit) x(ixNew), y(iyNew)
+                            WRITE(fmt = '(f8.3, ",", f8.3)', unit = funit) x(ixNew), y(iyNew)
                             CYCLE
                         END IF
 
@@ -246,7 +246,7 @@ PROGRAM main
 
                             ! Go southwards ...
                             CALL sub_going_south(ixOld, iyOld, elev, z, ixNew, iyNew)
-                            WRITE(fmt = '(f11.6, ",", f11.6)', unit = funit) x(ixNew), y(iyNew)
+                            WRITE(fmt = '(f8.3, ",", f8.3)', unit = funit) x(ixNew), y(iyNew)
                             CYCLE
                         END IF
 
@@ -259,7 +259,7 @@ PROGRAM main
 
                             ! Go westwards ...
                             CALL sub_going_west(ixOld, iyOld, elev, z, ixNew, iyNew)
-                            WRITE(fmt = '(f11.6, ",", f11.6)', unit = funit) x(ixNew), y(iyNew)
+                            WRITE(fmt = '(f8.3, ",", f8.3)', unit = funit) x(ixNew), y(iyNew)
                             CYCLE
                         END IF
 
