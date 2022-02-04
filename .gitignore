@@ -25,5 +25,7 @@ src/vectorise
 
 # Hide large datasets ...
 *.bin
+*.csv
+*.pgm
 *.png
 *.zip
