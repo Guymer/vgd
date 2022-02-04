@@ -114,6 +114,13 @@ PROGRAM main
             CALL sub_allocate_array(elev, "elev", nxScaled, nyScaled, .TRUE._INT8)
             CALL sub_load_array_from_BIN(elev, TRIM(fnameBIN))                  ! [m]
 
+            ! HACK: Make sure that none of the plateaus touch the edge of the
+            !       map ...
+            elev( 1_INT64, :) = 0_INT16                                         ! [m]
+            elev(nxScaled, :) = 0_INT16                                         ! [m]
+            elev(:,  1_INT64) = 0_INT16                                         ! [m]
+            elev(:, nyScaled) = 0_INT16                                         ! [m]
+
             ! Allocate array and initialize it to say that no pixels have been
             ! used so far  ...
             CALL sub_allocate_array(used, "used", nxScaled, nyScaled, .TRUE._INT8)
@@ -204,21 +211,8 @@ PROGRAM main
                             EXIT
                         END IF
 
-                        WRITE(*, *) ixNew, nxScaled, iyNew, nyScaled
-
                         ! Check if we went north ...
                         IF(ixNew == ixOld .AND. iyNew == iyOld - 1_INT64)THEN
-                            ! Check if we have hit the northern limit of Earth ...
-                            IF(iyNew == 1_INT64)THEN
-                                ! Move location ...
-                                ixOld = ixNew                                   ! [px]
-                                iyOld = iyNew                                   ! [px]
-
-                                ! Go east ...
-                                CALL sub_go_east(ixOld, iyOld, ixNew, iyNew)
-                                CYCLE
-                            END IF
-
                             ! Move location ...
                             ixOld = ixNew                                       ! [px]
                             iyOld = iyNew                                       ! [px]
@@ -232,17 +226,6 @@ PROGRAM main
 
                         ! Check if we went east ...
                         IF(ixNew == ixOld + 1_INT64 .AND. iyNew == iyOld)THEN
-                            ! Check if we have hit the eastern limit of Earth ...
-                            IF(ixNew == nxScaled + 1_INT64)THEN
-                                ! Move location ...
-                                ixOld = ixNew                                   ! [px]
-                                iyOld = iyNew                                   ! [px]
-
-                                ! Go south ...
-                                CALL sub_go_south(ixOld, iyOld, ixNew, iyNew)
-                                CYCLE
-                            END IF
-
                             ! Move location ...
                             ixOld = ixNew                                       ! [px]
                             iyOld = iyNew                                       ! [px]
@@ -256,17 +239,6 @@ PROGRAM main
 
                         ! Check if we went south ...
                         IF(ixNew == ixOld .AND. iyNew == iyOld + 1_INT64)THEN
-                            ! Check if we have hit the southern limit of Earth ...
-                            IF(iyNew == nyScaled + 1_INT64)THEN
-                                ! Move location ...
-                                ixOld = ixNew                                   ! [px]
-                                iyOld = iyNew                                   ! [px]
-
-                                ! Go west ...
-                                CALL sub_go_west(ixOld, iyOld, ixNew, iyNew)
-                                CYCLE
-                            END IF
-
                             ! Move location ...
                             ixOld = ixNew                                       ! [px]
                             iyOld = iyNew                                       ! [px]
@@ -280,17 +252,6 @@ PROGRAM main
 
                         ! Check if we went west ...
                         IF(ixNew == ixOld - 1_INT64 .AND. iyNew == iyOld)THEN
-                            ! Check if we have hit the western limit of Earth ...
-                            IF(ixNew == 1_INT64)THEN
-                                ! Move location ...
-                                ixOld = ixNew                                   ! [px]
-                                iyOld = iyNew                                   ! [px]
-
-                                ! Go north ...
-                                CALL sub_go_north(ixOld, iyOld, ixNew, iyNew)
-                                CYCLE
-                            END IF
-
                             ! Move location ...
                             ixOld = ixNew                                       ! [px]
                             iyOld = iyNew                                       ! [px]

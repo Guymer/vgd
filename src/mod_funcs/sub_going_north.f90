@@ -12,13 +12,13 @@ PURE SUBROUTINE sub_going_north(ixOld, iyOld, elev, z, ixNew, iyNew)
     INTEGER(kind = INT64), INTENT(out)                                          :: iyNew
 
     ! Check if we can go West ...
-    IF(ixOld /= 1_INT64 .AND. iyOld /= 1_INT64 .AND. elev(ixOld, iyOld - 1_INT64) >= z .AND. elev(ixOld - 1_INT64, iyOld - 1_INT64) >= z)THEN
+    IF(elev(ixOld, iyOld - 1_INT64) >= z .AND. elev(ixOld - 1_INT64, iyOld - 1_INT64) >= z)THEN
         CALL sub_go_west(ixOld, iyOld, ixNew, iyNew)
         RETURN
     END IF
 
     ! Check if we can go North ...
-    IF(iyOld /= 1_INT64 .AND. elev(ixOld, iyOld - 1_INT64) >= z)THEN
+    IF(elev(ixOld, iyOld - 1_INT64) >= z)THEN
         CALL sub_go_north(ixOld, iyOld, ixNew, iyNew)
         RETURN
     END IF
