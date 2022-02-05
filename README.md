@@ -9,3 +9,4 @@
 5. Convert the [GLOBE](https://www.ngdc.noaa.gov/mgg/topo/globe.html) dataset(s) to PNG files (by running [convertBINtoPNG.py](convertBINtoPNG.py))
 6. Vectorise the [GLOBE](https://www.ngdc.noaa.gov/mgg/topo/globe.html) dataset(s) to CSV files (by running [vectorise](src/vectorise.F90))
 7. Convert the masks to PNG files (by running [convertPGMtoPNG.py](convertPGMtoPNG.py))
+8. Convert the vectors to GeoJSON files (by running [convertCSVtoGeoJSON.py](convertCSVtoGeoJSON.py))
