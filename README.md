@@ -22,3 +22,9 @@ VGD requires the following Python modules to be installed and available in your 
 * [PIL](https://pypi.org/project/Pillow/)
 * [pyguymer3](https://github.com/Guymer/PyGuymer3)
 * [shapely](https://pypi.org/project/Shapely/)
+
+## Pathfinding Logic
+
+When FORTRAN loads up the binary data of elevation, the origin is in the top-left corner of Earth. The pathfinding algorithm then follows this logic (recognising that there are `nx * ny` pixels and `(nx + 1) * (ny + 1)` pixel edges):
+
+![photo of my doodle](IMG_2875.jpg)
