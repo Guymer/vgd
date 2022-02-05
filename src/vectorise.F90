@@ -78,6 +78,8 @@ PROGRAM main
 
         ! Loop over elevations ...
         ! NOTE: Rounded to the nearest integer, Mount Everest is 8,849m ASL.
+        ! NOTE: The output of "downscale" reports that the highest pixel in the
+        !       un-scaled dataset is 8,752m ASL.
         DO z = 500_INT16, 8500_INT16, 500_INT16
             WRITE(fmt = '(" > Searching for elevation of ", i4, "m ...")', unit = OUTPUT_UNIT) z
             FLUSH(unit = OUTPUT_UNIT)
