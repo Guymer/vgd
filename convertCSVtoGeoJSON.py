@@ -24,14 +24,15 @@ except:
 
 # Loop over collections ...
 for dname in sorted(glob.glob("data/scale=??km/elev=????m")):
-    # Extract scale and skip if it is too fine ...
-    scale = dname.split("/")[1]
-    if scale in ["scale=01km", "scale=02km", "scale=04km"]:
-        continue
-
     # Deduce GeoJSON name and skip this collection if it already exists ...
     jname = f"{dname}.geojson"
     if os.path.exists(jname):
+        continue
+
+    # Extract scale and skip if it is too detailed ...
+    scale = dname.split("/")[1]
+    if scale in ["scale=01km", "scale=02km", "scale=04km"]:
+        print(f"Skipping \"{jname}\" (too detailed).")
         continue
 
     print(f"Making \"{jname}\" ...")
