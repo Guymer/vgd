@@ -88,6 +88,9 @@ for dname in sorted(glob.glob("data/scale=??km/elev=????m")):
 
     print(" > Correcting holes ...")
 
+    # Initialize progress ...
+    progress = 0.0                                                              # [%]
+
     # Start infinite loop ...
     while True:
         # Initialize flag ...
@@ -107,8 +110,9 @@ for dname in sorted(glob.glob("data/scale=??km/elev=????m")):
                 if not outerPoly.contains(innerPoly):
                     continue
 
-                # Set flag ...
+                # Set flag and progress ...
                 foundHole = True
+                progress = 100.0 * float(iOuter) / float(len(polys))            # [%]
 
                 # Make a new Polygon containing this inner Polygon as a new hole
                 # in the outer Polygon ...
@@ -140,6 +144,8 @@ for dname in sorted(glob.glob("data/scale=??km/elev=????m")):
         if not foundHole:
             # Stop looping ...
             break
+
+        print(f"   {progress:7.3f}%")
 
     # **************************************************************************
 
