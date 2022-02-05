@@ -1,4 +1,4 @@
-# Vectorise GLOBE Dataset
+# Vectorise GLOBE Dataset (VGD)
 
 This collection of FORTRAN programs and Python 3.x scripts downloads the [GLOBE](https://www.ngdc.noaa.gov/mgg/topo/globe.html) dataset and (eventually) creates a collection of GeoJSON files containing Polygons that describe Earth's elevation.
 
