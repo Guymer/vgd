@@ -45,6 +45,10 @@ for dname in sorted(glob.glob("data/scale=??km/elev=????m")):
             dirtyLines = fobj.readlines()[1:]
 
         # Remove duplicate lines ...
+        # NOTE: This is required as some of the Polygons touch themselves.
+        #       According to the Shapely documentation, a Polygon can only touch
+        #       itself once. See:
+        #         * https://shapely.readthedocs.io/en/stable/manual.html#polygons
         cleanLines = []
         for i, dirtyLine in enumerate(dirtyLines):
             if i in [0, len(dirtyLines) - 1]:
