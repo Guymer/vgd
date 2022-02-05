@@ -38,6 +38,9 @@ PROGRAM main
     CALL sub_allocate_array(elev, "elev", nx, ny, .TRUE._INT8)
     CALL sub_load_array_from_BIN(elev, "../data/scale=01km.bin")                ! [m]
 
+    WRITE(fmt = '("For reference, the highest pixel in the un-scaled dataset is ", i4, "m ASL.")', unit = OUTPUT_UNIT) MAXVAL(elev)
+    FLUSH(unit = OUTPUT_UNIT)
+
     ! Loop over scales ...
     DO iscale = 1_INT64, 5_INT64
         ! Determine scale ...
@@ -77,14 +80,14 @@ PROGRAM main
         ! Loop over x-axis tiles ...
         DO ix = 1_INT64, nx / scale
             ! Find the extent of the tile ...
-            ixlo = (ix - 1_INT64) * scale + 1_INT64
-            ixhi =  ix            * scale
+            ixlo = (ix - 1_INT64) * scale + 1_INT64                             ! [px]
+            ixhi =  ix            * scale                                       ! [px]
 
             ! Loop over y-axis tiles ...
             DO iy = 1_INT64, ny / scale
                 ! Find the extent of the tile ...
-                iylo = (iy - 1_INT64) * scale + 1_INT64
-                iyhi =  iy            * scale
+                iylo = (iy - 1_INT64) * scale + 1_INT64                         ! [px]
+                iyhi =  iy            * scale                                   ! [px]
 
                 ! Increase the precision of the data and assign it to the tile ...
                 elevTile = INT(elev(ixlo:ixhi, iylo:iyhi), kind = INT32)        ! [m]
