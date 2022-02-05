@@ -2,17 +2,16 @@
 
 # Import standard modules ...
 import glob
+import os
 
 # Import special modules ...
 try:
     import geojson
-    geojson.geometry.Geometry.__init__.__defaults__ = (None, False, 12)     # NOTE: See https://github.com/jazzband/geojson/issues/135#issuecomment-596509669
 except:
     raise Exception("\"geojson\" is not installed; run \"pip install --user geojson\"") from None
 try:
     import shapely
     import shapely.geometry
-    import shapely.validation
 except:
     raise Exception("\"shapely\" is not installed; run \"pip install --user Shapely\"") from None
 
@@ -25,17 +24,22 @@ except:
 
 # Loop over collections ...
 for dname in sorted(glob.glob("data/scale=??km/elev=????m")):
-    print(f"Processing \"{dname}\" ...")
+    # Deduce GeoJSON name and skip this collection if it already exists ...
+    jname = f"{dname}.geojson"
+    if os.path.exists(jname):
+        continue
+
+    print(f"Making \"{jname}\" ...")
 
     # **************************************************************************
+
+    print(" > Loading CSVs ...")
 
     # Initialize list ...
     polys = []
 
     # Loop over LinearRings ...
     for cname in sorted(glob.glob(f"{dname}/ring=??????.csv")):
-        print(f" > Loading \"{cname}\" ...")
-
         # Load lines of CSV ...
         with open(cname, "rt", encoding = "utf-8") as fobj:
             dirtyLines = fobj.readlines()[1:]
@@ -60,19 +64,90 @@ for dname in sorted(glob.glob("data/scale=??km/elev=????m")):
 
         # Create a Polygon from the list of coordinates ...
         poly = shapely.geometry.polygon.Polygon(coords)
-        if not isinstance(poly, shapely.geometry.polygon.Polygon):
-            raise Exception("\"poly\" is not a Polygon") from None
-        if not poly.is_valid:
-            # pyguymer3.geo._debug(poly)
-            raise Exception(f"\"poly\" is not a valid Polygon ({shapely.validation.explain_validity(poly)})") from None
-        if poly.is_empty:
-            raise Exception("\"poly\" is an empty Polygon") from None
+        pyguymer3.geo.check_Polygon(poly)
         del coords
 
         # Append Polygon to list ...
         polys.append(poly)
 
+    # Skip this collection if there aren't any Polygons ...
+    if len(polys) == 0:
+        continue
+
     # **************************************************************************
 
-    # print(polys)
-    # exit()
+    print(" > Correcting holes ...")
+
+    # Start infinite loop ...
+    while True:
+        # Initialize flag ...
+        foundHole = False
+
+        # Loop over Polygons ...
+        for iOuter, outerPoly in enumerate(polys):
+            # Loop over Polygons ...
+            for iInner, innerPoly in enumerate(polys):
+                # Skip this inner Polygon if it is the same one as in the outer
+                # loop ...
+                if iInner == iOuter:
+                    continue
+
+                # Skip this inner Polygon if it is not contained in the outer
+                # Polygon ...
+                if not outerPoly.contains(innerPoly):
+                    continue
+
+                # Set flag ...
+                foundHole = True
+
+                # Make a new Polygon containing this inner Polygon as a new hole
+                # in the outer Polygon ...
+                exterior = outerPoly.exterior
+                interiors = []
+                for interior in outerPoly.interiors:
+                    interiors.append(interior)
+                interiors.append(innerPoly.exterior)
+                poly = shapely.geometry.polygon.Polygon(exterior, holes = interiors)
+                pyguymer3.geo.check_Polygon(poly)
+                del exterior, interiors
+
+                # Overwrite the outer Polygon with this new Polygon ...
+                polys[iOuter] = poly
+                del poly
+
+                # Remove this inner Polygon from the list ...
+                del polys[iInner]
+
+                # Stop looping ...
+                break
+
+            # Check if a new hole was found ...
+            if foundHole:
+                # Stop looping ...
+                break
+
+        # Check if a new hole was not found ...
+        if not foundHole:
+            # Stop looping ...
+            break
+
+    # **************************************************************************
+
+    # Make a GeometryCollection of these Polygons ...
+    # NOTE: Some of these Polygons may touch each other. According to the
+    #       Shapely documentation, a MultiPolygon can only touch itself once.
+    #       Therefore, I make a GeometryCollection instead. See:
+    #         * https://shapely.readthedocs.io/en/stable/manual.html#collections
+    #         * https://shapely.readthedocs.io/en/stable/manual.html#collections-of-polygons
+    coll = shapely.geometry.collection.GeometryCollection(polys)
+    del polys
+
+    # Save GeometryCollection as a GeoJSON ...
+    with open(jname, "wt", encoding = "utf-8") as fobj:
+        geojson.dump(
+            coll,
+            fobj,
+               indent = 4,
+            sort_keys = True,
+        )
+    del coll
