@@ -77,7 +77,7 @@ PROGRAM main
         END IF
 
         ! Loop over elevations ...
-        DO z = 500_INT16, 9000_INT16, 500_INT16
+        DO z = 500_INT16, 8500_INT16, 500_INT16
             WRITE(fmt = '(" > Searching for elevation of ", i4, "m ...")', unit = OUTPUT_UNIT) z
             FLUSH(unit = OUTPUT_UNIT)
 
