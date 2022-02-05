@@ -112,7 +112,7 @@ for dname in sorted(glob.glob("data/scale=??km/elev=????m")):
 
                 # Set flag and progress ...
                 foundHole = True
-                progress = 100.0 * float(iOuter) / float(len(polys))            # [%]
+                progress = 100.0 * float(iOuter) / float(len(polys) - 1)        # [%]
 
                 # Make a new Polygon containing this inner Polygon as a new hole
                 # in the outer Polygon ...
