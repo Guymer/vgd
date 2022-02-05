@@ -137,6 +137,8 @@ for dname in sorted(glob.glob("data/scale=??km/elev=????m")):
 
     # **************************************************************************
 
+    print(" > Saving GeoJSON ...")
+
     # Make a GeometryCollection of these Polygons ...
     # NOTE: Some of these Polygons may touch each other. According to the
     #       Shapely documentation, a MultiPolygon can only touch itself once.
