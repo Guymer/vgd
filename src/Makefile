@@ -48,23 +48,24 @@ MOD_FUNCS_SRC := $(sort mod_funcs.F90 $(wildcard mod_funcs/*.f90))
 
 # ******************************************************************************
 
-# "gmake [all]"   = "make compile" (default)
+# "gmake -r [all]"   = "make compile" (default)
 all:				compile
 
-# "gmake clean"   = removes the compiled code
-clean:				$(RM)
-	$(RM) -f vectorise *.mod *.o
+# "gmake -r clean"   = removes the compiled code
+clean:				$(RM)														\
+					$(FC)
+	$(RM) -f downscale vectorise *.mod *.o
 	$(MAKE) -r -C $(FTNLIB) FC=$(FC) clean
 
-# "gmake compile" = compiles the code
+# "gmake -r compile" = compiles the code
 compile:			downscale													\
 					vectorise
 
-# "gmake help"    = print this help
+# "gmake -r help"    = print this help
 help:				$(GREP)														\
 					$(CUT)
 	echo "These are the available options:"
-	$(GREP) -E "^# \"gmake " Makefile | $(CUT) -c 2-
+	$(GREP) -E "^# \"gmake -r " Makefile | $(CUT) -c 2-
 
 # ******************************************************************************
 
@@ -113,7 +114,7 @@ downscale:		$(FC)															\
 				downscale.o
 	$(FC) $(LANG_OPTS) $(WARN_OPTS) $(OPTM_OPTS) $(MACH_OPTS) downscale.o $(FTNLIB)/mod_safe.o -L$(LIBDIR) -o $@
 
-vectorise:			$(FC)															\
+vectorise:		$(FC)															\
 				Makefile														\
 				$(FTNLIB)/mod_safe.o											\
 				mod_funcs.o														\
