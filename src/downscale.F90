@@ -34,6 +34,11 @@ PROGRAM main
     CHARACTER(len = 256)                                                        :: fname
     LOGICAL                                                                     :: fexist
 
+    ! NOTE: The arrays go:
+    !       ( 1, 1) ... (nx, 1)
+    !         ...         ...
+    !       ( 1,ny) ... (nx,ny)
+
     ! Allocate (1.74 GiB) array and populate it ...
     CALL sub_allocate_array(elev, "elev", nx, ny, .TRUE._INT8)
     CALL sub_load_array_from_BIN(elev, "../data/scale=01km.bin")                ! [m]

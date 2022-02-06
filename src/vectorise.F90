@@ -42,6 +42,11 @@ PROGRAM main
     INTEGER                                                                     :: errnum
     INTEGER                                                                     :: funit
 
+    ! NOTE: The arrays go:
+    !       ( 1, 1) ... (nx, 1)
+    !         ...         ...
+    !       ( 1,ny) ... (nx,ny)
+
     ! Loop over scales ...
     DO iscale = 0_INT64, 5_INT64
         ! Determine scale ...
