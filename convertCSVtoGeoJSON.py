@@ -74,7 +74,7 @@ for dname in sorted(glob.glob("data/scale=??km/elev=????m")):
 
         # Create a Polygon from the list of coordinates ...
         poly = shapely.geometry.polygon.Polygon(coords)
-        pyguymer3.geo.check_Polygon(poly)
+        pyguymer3.geo.check(poly)
         del coords
 
         # Append Polygon to list ...
@@ -120,7 +120,7 @@ for dname in sorted(glob.glob("data/scale=??km/elev=????m")):
                     interiors.append(interior)
                 interiors.append(innerPoly.exterior)
                 poly = shapely.geometry.polygon.Polygon(exterior, holes = interiors)
-                pyguymer3.geo.check_Polygon(poly)
+                pyguymer3.geo.check(poly)
                 del exterior, interiors
 
                 # Overwrite the outer Polygon with this new Polygon ...
