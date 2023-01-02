@@ -8,6 +8,7 @@ import os
 try:
     import PIL
     import PIL.Image
+    PIL.Image.MAX_IMAGE_PIXELS = 1024 * 1024 * 1024                             # [px]
 except:
     raise Exception("\"PIL\" is not installed; run \"pip install --user Pillow\"") from None
 
@@ -17,9 +18,6 @@ try:
     import pyguymer3.image
 except:
     raise Exception("\"pyguymer3\" is not installed; you need to have the Python module from https://github.com/Guymer/PyGuymer3 located somewhere in your $PYTHONPATH") from None
-
-# Configure PIL to open images up to 1 GiP ...
-PIL.Image.MAX_IMAGE_PIXELS = 1024 * 1024 * 1024                             # [px]
 
 # Loop over PGMs ...
 for pgm in sorted(glob.glob("data/scale=??km/elev=????m.pgm")):
