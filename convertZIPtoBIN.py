@@ -42,7 +42,7 @@ if not os.path.exists("data/scale=01km.bin"):
     elev = numpy.zeros((ny, nx), dtype = numpy.int16)                           # [m]
 
     # Load dataset ...
-    with zipfile.ZipFile("all10g.zip", "r") as fobj:
+    with zipfile.ZipFile("all10g.zip", "r") as fObj:
         # Initialize index ...
         iy = 0                                                                  # [px]
 
@@ -62,7 +62,7 @@ if not os.path.exists("data/scale=01km.bin"):
 
                 # Load tile ...
                 tile = numpy.frombuffer(
-                    fobj.read(bins[j + i * 4]),
+                    fObj.read(bins[j + i * 4]),
                     dtype = numpy.int16
                 ).reshape(nrows, ncols)                                         # [m]
 

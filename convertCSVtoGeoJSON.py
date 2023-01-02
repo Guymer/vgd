@@ -48,8 +48,8 @@ for dname in sorted(glob.glob("data/scale=??km/elev=????m")):
     # Loop over LinearRings ...
     for cname in sorted(glob.glob(f"{dname}/ring=??????.csv")):
         # Load lines of CSV ...
-        with open(cname, "rt", encoding = "utf-8") as fobj:
-            dirtyLines = fobj.readlines()[1:]
+        with open(cname, "rt", encoding = "utf-8") as fObj:
+            dirtyLines = fObj.readlines()[1:]
 
         # Remove duplicate lines ...
         # NOTE: This is required as some of the Polygons touch themselves.
@@ -160,10 +160,10 @@ for dname in sorted(glob.glob("data/scale=??km/elev=????m")):
     del polys
 
     # Save GeometryCollection as a GeoJSON ...
-    with open(jname, "wt", encoding = "utf-8") as fobj:
+    with open(jname, "wt", encoding = "utf-8") as fObj:
         geojson.dump(
             coll,
-            fobj,
+            fObj,
                indent = 4,
             sort_keys = True,
         )
