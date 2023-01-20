@@ -16,11 +16,7 @@ if not os.path.exists("all10g.zip"):
     print("Downloading \"all10g.zip\" ...")
 
     # Start session ...
-    sess = pyguymer3.start_session()
-
-    # Download the ZIP file ...
-    if not pyguymer3.download_file(sess, "https://www.ngdc.noaa.gov/mgg/topo/DATATILES/elev/all10g.zip", "all10g.zip"):
-        raise Exception("download failed", "https://www.ngdc.noaa.gov/mgg/topo/DATATILES/elev/all10g.zip") from None
-
-    # Close session ...
-    sess.close()
+    with pyguymer3.start_session() as sess:
+        # Download the ZIP file ...
+        if not pyguymer3.download_file(sess, "https://www.ngdc.noaa.gov/mgg/topo/DATATILES/elev/all10g.zip", "all10g.zip"):
+            raise Exception("download failed", "https://www.ngdc.noaa.gov/mgg/topo/DATATILES/elev/all10g.zip") from None
