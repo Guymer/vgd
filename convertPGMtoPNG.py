@@ -27,7 +27,7 @@ if __name__ == "__main__":
         print(f"Converting \"{pgm}\" ...")
 
         # Deduce PNG name ...
-        png = f"{pgm[:-4]}.png"
+        png = f'{pgm.removesuffix(".pgm")}.png'
 
         # Open image as RGB (even if it is paletted) ...
         with PIL.Image.open(pgm) as iObj:
