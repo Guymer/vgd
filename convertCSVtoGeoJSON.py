@@ -67,19 +67,16 @@ if __name__ == "__main__":
                 if dirtyLines.count(dirtyLine) == 1:
                     cleanLines.append(dirtyLine)
                     continue
-            del dirtyLines
 
             # Create a list of coordinates ...
             coords = []                                                         # [°], [°]
             for cleanLine in cleanLines:
                 lon, lat = cleanLine.split(",")
                 coords.append((float(lon), float(lat)))                         # [°], [°]
-            del cleanLines
 
             # Create a Polygon from the list of coordinates ...
             poly = shapely.geometry.polygon.Polygon(coords)
             pyguymer3.geo.check(poly)
-            del coords
 
             # Append Polygon to list ...
             polys.append(poly)
@@ -125,11 +122,9 @@ if __name__ == "__main__":
                     interiors.append(innerPoly.exterior)
                     poly = shapely.geometry.polygon.Polygon(exterior, holes = interiors)
                     pyguymer3.geo.check(poly)
-                    del exterior, interiors
 
                     # Overwrite the outer Polygon with this new Polygon ...
                     polys[iOuter] = poly
-                    del poly
 
                     # Remove this inner Polygon from the list ...
                     del polys[iInner]
@@ -160,7 +155,6 @@ if __name__ == "__main__":
         #         * https://shapely.readthedocs.io/en/stable/manual.html#collections
         #         * https://shapely.readthedocs.io/en/stable/manual.html#collections-of-polygons
         coll = shapely.geometry.collection.GeometryCollection(polys)
-        del polys
 
         # Save GeometryCollection as a GeoJSON ...
         with open(jname, "wt", encoding = "utf-8") as fObj:
@@ -170,4 +164,3 @@ if __name__ == "__main__":
                    indent = 4,
                 sort_keys = True,
             )
-        del coll
