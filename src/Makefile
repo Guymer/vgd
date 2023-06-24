@@ -103,28 +103,28 @@ help:
 #         * https://stackoverflow.com/a/58081934
 
 $(FTNLIB)/%.mod																	\
-$(FTNLIB)/%.o:	$(FTNLIB)/%.F90
+$(FTNLIB)/%.o &:	$(FTNLIB)/%.F90
 	$(MAKE) -r -C $(FTNLIB) DEBUG=$(DEBUG) FC=$(FC) PYTHON3=$(PYTHON3) $*.o
 
 mod_funcs.mod																	\
-mod_funcs.o:	$(FTNLIB)/mod_safe.mod											\
-				$(MOD_FUNCS_SRC)
+mod_funcs.o &:		$(FTNLIB)/mod_safe.mod										\
+					$(MOD_FUNCS_SRC)
 	$(FC) -c $(LANG_OPTS) $(WARN_OPTS) $(OPTM_OPTS) $(MACH_OPTS) -I$(FTNLIB) mod_funcs.F90
 
-downscale.o:	$(FTNLIB)/mod_safe.mod											\
-				downscale.F90
+downscale.o:		$(FTNLIB)/mod_safe.mod										\
+					downscale.F90
 	$(FC) -c $(LANG_OPTS) $(WARN_OPTS) $(OPTM_OPTS) $(MACH_OPTS) -I$(FTNLIB) downscale.F90 -o $@
 
-vectorise.o:	$(FTNLIB)/mod_safe.mod											\
-				mod_funcs.mod													\
-				vectorise.F90
+vectorise.o:		$(FTNLIB)/mod_safe.mod										\
+					mod_funcs.mod												\
+					vectorise.F90
 	$(FC) -c $(LANG_OPTS) $(WARN_OPTS) $(OPTM_OPTS) $(MACH_OPTS) -I$(FTNLIB) vectorise.F90 -o $@
 
-downscale:		$(FTNLIB)/mod_safe.o											\
-				downscale.o
+downscale:			$(FTNLIB)/mod_safe.o										\
+					downscale.o
 	$(FC) $(LANG_OPTS) $(WARN_OPTS) $(OPTM_OPTS) $(MACH_OPTS) downscale.o $(FTNLIB)/mod_safe.o -L$(LIBDIR) -o $@
 
-vectorise:		$(FTNLIB)/mod_safe.o											\
-				mod_funcs.o														\
-				vectorise.o
+vectorise:			$(FTNLIB)/mod_safe.o										\
+					mod_funcs.o													\
+					vectorise.o
 	$(FC) $(LANG_OPTS) $(WARN_OPTS) $(OPTM_OPTS) $(MACH_OPTS) vectorise.o $(FTNLIB)/mod_safe.o mod_funcs.o -L$(LIBDIR) -o $@
