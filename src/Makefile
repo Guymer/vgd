@@ -67,7 +67,7 @@ MOD_FUNCS_SRC := $(sort mod_funcs.F90 $(wildcard mod_funcs/*.f90))
 # *                           USER-SPECIFIED TARGETS                           *
 # ******************************************************************************
 
-# "gmake -r [all]"   = "make compile" (default)
+# "gmake -r [all]"   = "gmake -r compile" (default)
 all:				compile
 
 # "gmake -r clean"   = removes the compiled code
