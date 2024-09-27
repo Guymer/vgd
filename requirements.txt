@@ -3,5 +3,6 @@
 
 pillow
 geojson
+meson
 numpy
 shapely
