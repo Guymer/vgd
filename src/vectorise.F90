@@ -34,6 +34,7 @@ PROGRAM main
     INTEGER(kind = INT64), PARAMETER                                            :: nx = 43200_INT64
     INTEGER(kind = INT64), PARAMETER                                            :: ny = 21600_INT64
     INTEGER(kind = INT64), PARAMETER                                            :: ringMax = 1048576_INT64              ! NOTE: As of 23/Nov/2024 the maximum actually written is 19,441.
+    INTEGER(kind = INT64), PARAMETER                                            :: sizeMax = 250000000_INT64
     INTEGER(kind = INT64), PARAMETER                                            :: stepMax = 1048576_INT64              ! NOTE: As of 23/Nov/2024 the maximum actually written is 91,083.
 
     ! Declare variables ...
@@ -107,6 +108,10 @@ PROGRAM main
             STOP
         END IF
 
+        ! Create short-hands ...
+        nxScaled = nx / scale                                                   ! [px]
+        nyScaled = ny / scale                                                   ! [px]
+
         ! Determine input file name and skip if it does not exist ...
         WRITE(fnameBIN, fmt = '("../data/scale=", i2.2, "km.bin")') scale
         INQUIRE(file = TRIM(fnameBIN), exist = fexist)
@@ -120,28 +125,41 @@ PROGRAM main
         FLUSH(unit = OUTPUT_UNIT)
 
         ! Skip this scale if the output would be too big ...
-        IF(iScale < 2_INT64)THEN
+        IF(nxScaled * nyScaled > sizeMax)THEN
+            WRITE(fmt = '("  Skipping (the PGM would be ", f5.1, " Mpx).")', unit = OUTPUT_UNIT) REAL(nxScaled * nyScaled, kind = REAL64) / 1.0e6_REAL64
             CYCLE
         END IF
+
+        ! Determine output directory name and make it ...
+        WRITE(dname, fmt = '("../data/scale=", i2.2, "km")') scale
+        CALL EXECUTE_COMMAND_LINE(                                              &
+            "mkdir -p " // TRIM(dname),                                         &
+              cmdmsg = errmsg,                                                  &
+            exitstat = errnum                                                   &
+        )
+        IF(errnum /= 0)THEN
+            WRITE(fmt = '("ERROR: ", a, ". ERRMSG = ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "mkdir failed", TRIM(errmsg), errnum
+            FLUSH(unit = ERROR_UNIT)
+            STOP
+        END IF
+
+        ! Allocate array and populate it ...
+        CALL sub_allocate_array(x, "x", nxScaled + 1_INT64, .TRUE._INT8)
+        DO ix = 0_INT64, nxScaled
+            x(ix + 1_INT64) = 360.0e0_REAL64 * (REAL(ix, kind = REAL64) - 0.5e0_REAL64 * REAL(nxScaled, kind = REAL64)) / REAL(nxScaled, kind = REAL64) ! [°]
+        END DO
+
+        ! Allocate array and populate it ...
+        CALL sub_allocate_array(y, "y", nyScaled + 1_INT64, .TRUE._INT8)
+        DO iy = 0_INT64, nyScaled
+            y(iy + 1_INT64) = 180.0e0_REAL64 * (0.5e0_REAL64 * REAL(nyScaled, kind = REAL64) - REAL(iy, kind = REAL64)) / REAL(nyScaled, kind = REAL64) ! [°]
+        END DO
 
         ! Loop over elevations ...
         ! NOTE: Rounded to the nearest integer, Mount Everest is 8,849m ASL.
         ! NOTE: The output of "downscale" reports that the highest pixel in the
         !       un-scaled dataset is 8,752m ASL.
         DO z = 250_INT16, 8750_INT16, 250_INT16
-            ! Determine output directory name and make it ...
-            WRITE(dname, fmt = '("../data/scale=", i2.2, "km")') scale
-            CALL EXECUTE_COMMAND_LINE(                                          &
-                "mkdir -p " // TRIM(dname),                                     &
-                  cmdmsg = errmsg,                                              &
-                exitstat = errnum                                               &
-            )
-            IF(errnum /= 0)THEN
-                WRITE(fmt = '("ERROR: ", a, ". ERRMSG = ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "mkdir failed", TRIM(errmsg), errnum
-                FLUSH(unit = ERROR_UNIT)
-                STOP
-            END IF
-
             ! Determine output file names ...
             WRITE(fnameHDF, fmt = '("../data/scale=", i2.2, "km/elev=", i4.4, "m.h5")') scale, z
             WRITE(fnamePGM, fmt = '("../data/scale=", i2.2, "km/elev=", i4.4, "m.pgm")') scale, z
@@ -149,12 +167,12 @@ PROGRAM main
             ! Skip if the output file exists ...
             INQUIRE(file = TRIM(fnameHDF), exist = fexist)
             IF(fexist)THEN
-                WRITE(fmt = '(" > Skipping for elevation of ", i4, "m (the output already exists).")', unit = OUTPUT_UNIT) z
+                WRITE(fmt = '("  Skipping for elevation of ", i4, "m (the output already exists).")', unit = OUTPUT_UNIT) z
                 FLUSH(unit = OUTPUT_UNIT)
                 CYCLE
             END IF
 
-            WRITE(fmt = '(" > Searching for elevation of ", i4, "m ...")', unit = OUTPUT_UNIT) z
+            WRITE(fmt = '("  Searching for elevation of ", i4, "m ...")', unit = OUTPUT_UNIT) z
             FLUSH(unit = OUTPUT_UNIT)
 
             ! Create HDF5 file ...
@@ -169,22 +187,6 @@ PROGRAM main
                 FLUSH(unit = ERROR_UNIT)
                 STOP
             END IF
-
-            ! Create short-hands ...
-            nxScaled = nx / scale                                               ! [px]
-            nyScaled = ny / scale                                               ! [px]
-
-            ! Allocate array and populate it ...
-            CALL sub_allocate_array(x, "x", nxScaled + 1_INT64, .TRUE._INT8)
-            DO ix = 0_INT64, nxScaled
-                x(ix + 1_INT64) = 360.0e0_REAL64 * (REAL(ix, kind = REAL64) - 0.5e0_REAL64 * REAL(nxScaled, kind = REAL64)) / REAL(nxScaled, kind = REAL64) ! [°]
-            END DO
-
-            ! Allocate array and populate it ...
-            CALL sub_allocate_array(y, "y", nyScaled + 1_INT64, .TRUE._INT8)
-            DO iy = 0_INT64, nyScaled
-                y(iy + 1_INT64) = 180.0e0_REAL64 * (0.5e0_REAL64 * REAL(nyScaled, kind = REAL64) - REAL(iy, kind = REAL64)) / REAL(nyScaled, kind = REAL64) ! [°]
-            END DO
 
             ! Allocate array and populate it ...
             CALL sub_allocate_array(elev, "elev", nxScaled, nyScaled, .TRUE._INT8)
@@ -312,7 +314,7 @@ PROGRAM main
                                 STOP
                             END IF
 
-                            WRITE(fmt = '("   > Ring ", i6, " got back to the start after ", i6, " steps.")', unit = OUTPUT_UNIT) iRing, iStep
+                            WRITE(fmt = '("    Ring ", i6, " got back to the start after ", i6, " steps.")', unit = OUTPUT_UNIT) iRing, iStep
                             FLUSH(unit = OUTPUT_UNIT)
                             EXIT
                         END IF
@@ -411,8 +413,6 @@ PROGRAM main
             CALL sub_save_array_as_PGM(used, TRIM(fnamePGM))
 
             ! Clean up ...
-            DEALLOCATE(x)
-            DEALLOCATE(y)
             DEALLOCATE(elev)
             DEALLOCATE(used)
 
@@ -443,6 +443,10 @@ PROGRAM main
                 STOP
             END IF
         END DO
+
+        ! Clean up ...
+        DEALLOCATE(x)
+        DEALLOCATE(y)
     END DO
 
     ! Clean up ...
