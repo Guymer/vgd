@@ -9,6 +9,10 @@ if __name__ == "__main__":
 
     # Import special modules ...
     try:
+        import h5py
+    except:
+        raise Exception("\"h5py\" is not installed; run \"pip install --user h5py\"") from None
+    try:
         import geojson
         geojson.geometry.Geometry.__init__.__defaults__ = (None, False, 12)     # NOTE: See https://github.com/jazzband/geojson/issues/135#issuecomment-596509669
     except:
@@ -26,60 +30,59 @@ if __name__ == "__main__":
     except:
         raise Exception("\"pyguymer3\" is not installed; you need to have the Python module from https://github.com/Guymer/PyGuymer3 located somewhere in your $PYTHONPATH") from None
 
-    # Loop over collections ...
-    for dname in sorted(glob.glob("data/scale=??km/elev=????m")):
-        # Deduce GeoJSON name and skip this collection if it already exists ...
-        jname = f"{dname}.geojson"
-        if os.path.exists(jname):
+    # Loop over HDF5 files ...
+    for hName in sorted(glob.glob("data/scale=??km/elev=????m.h5")):
+        # Deduce GeoJSON name and skip this HDF5 file if it already exists ...
+        jName = f'{hName.removesuffix(".h5")}.geojson'
+        if os.path.exists(jName):
             continue
 
         # Extract scale and skip if it is too detailed ...
-        scale = dname.split("/")[1]
-        if scale in ["scale=01km", "scale=02km", "scale=04km"]:
-            print(f"Skipping \"{jname}\" (too detailed).")
+        scale = hName.split("/")[1]
+        if scale in [
+            "scale=01km",
+            "scale=02km",
+            "scale=04km",
+        ]:
+            print(f"Skipping \"{jName}\" (it is too detailed).")
             continue
 
-        print(f"Making \"{jname}\" ...")
+        print(f"Making \"{jName}\" ...")
 
         # **********************************************************************
-
-        print(" > Loading CSVs ...")
 
         # Initialize list ...
         polys = []
 
-        # Loop over LinearRings ...
-        for cname in sorted(glob.glob(f"{dname}/ring=??????.csv")):
-            # Load lines of CSV ...
-            with open(cname, "rt", encoding = "utf-8") as fObj:
-                dirtyLines = fObj.readlines()[1:]
+        print(f"  Loading \"{hName}\" ...")
 
-            # Remove duplicate lines ...
-            # NOTE: This is required as some of the Polygons touch themselves.
-            #       According to the Shapely documentation, a Polygon can only
-            #       touch itself once. See:
-            #         * https://shapely.readthedocs.io/en/stable/manual.html#polygons
-            cleanLines = []
-            for i, dirtyLine in enumerate(dirtyLines):
-                if i in [0, len(dirtyLines) - 1]:
-                    cleanLines.append(dirtyLine)
-                    continue
-                if dirtyLines.count(dirtyLine) == 1:
-                    cleanLines.append(dirtyLine)
-                    continue
+        # Open HDF5 file ...
+        with h5py.File(hName, "r") as hObj:
+            # Loop over rings ...
+            for iRing in range(hObj.attrs["nRings"][0]):
+                # Create short-hand ...
+                key = f"ring={iRing:06d}"
 
-            # Create a list of coordinates ...
-            coords = []                                                         # [°], [°]
-            for cleanLine in cleanLines:
-                lon, lat = cleanLine.split(",")
-                coords.append((float(lon), float(lat)))                         # [°], [°]
+                # Extract a dirty copy of the data ...
+                dirtyLats = hObj[key]["lats"][:]                                # [°]
+                dirtyLons = hObj[key]["lons"][:]                                # [°]
 
-            # Create a Polygon from the list of coordinates ...
-            poly = shapely.geometry.polygon.Polygon(coords)
-            pyguymer3.geo.check(poly)
+                # Create a clean list of the coordinates ...
+                # NOTE: This is required as some of the Polygons touch
+                #       themselves. According to the Shapely documentation, a
+                #       Polygon can only touch itself once. See:
+                #         * https://shapely.readthedocs.io/en/stable/manual.html#polygons
+                coords = []                                                     # [°], [°]
+                for iCoord in range(dirtyLats.size):
+                    if ((dirtyLats == dirtyLats[iCoord]) * (dirtyLons == dirtyLons[iCoord])).sum() == 1:
+                        coords.append((dirtyLons[iCoord], dirtyLats[iCoord]))   # [°], [°]
 
-            # Append Polygon to list ...
-            polys.append(poly)
+                # Create a Polygon from the list of coordinates ...
+                poly = shapely.geometry.polygon.Polygon(coords)
+                pyguymer3.geo.check(poly)
+
+                # Append Polygon to list ...
+                polys.append(poly)
 
         # Skip this collection if there aren't any Polygons ...
         if len(polys) == 0:
@@ -87,7 +90,7 @@ if __name__ == "__main__":
 
         # **********************************************************************
 
-        print(" > Correcting holes ...")
+        print("  Correcting holes ...")
 
         # Start infinite loop ...
         while True:
@@ -146,7 +149,7 @@ if __name__ == "__main__":
 
         # **********************************************************************
 
-        print(" > Saving GeoJSON ...")
+        print("  Saving GeoJSON ...")
 
         # Make a GeometryCollection of these Polygons ...
         # NOTE: Some of these Polygons may touch each other. According to the
@@ -157,7 +160,7 @@ if __name__ == "__main__":
         coll = shapely.geometry.collection.GeometryCollection(polys)
 
         # Save GeometryCollection as a GeoJSON ...
-        with open(jname, "wt", encoding = "utf-8") as fObj:
+        with open(jName, "wt", encoding = "utf-8") as fObj:
             geojson.dump(
                 coll,
                 fObj,

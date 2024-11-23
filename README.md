@@ -11,13 +11,14 @@ This collection of FORTRAN programs and Python 3.x scripts downloads the [GLOBE]
 5. Convert the [GLOBE](https://www.ngdc.noaa.gov/mgg/topo/globe.html) dataset(s) to PNG files (by running [convertBINtoPNG.py](convertBINtoPNG.py))
 6. Vectorise the [GLOBE](https://www.ngdc.noaa.gov/mgg/topo/globe.html) dataset(s) to rings stored in H5 files (by running [vectorise](src/vectorise.F90))
 7. Convert the masks to PNG files (by running [convertPGMtoPNG.py](convertPGMtoPNG.py))
-8. Convert the rings stored in H5 files to Polygons stored in GeoJSON files (by running [convertCSVtoGeoJSON.py](convertCSVtoGeoJSON.py))
+8. Convert the rings stored in H5 files to Polygons stored in GeoJSON files (by running [convertH5toGeoJSON.py](convertH5toGeoJSON.py))
 
 ## Dependencies
 
 VGD requires the following Python modules to be installed and available in your `PYTHONPATH`.
 
 * [geojson](https://pypi.org/project/geojson/)
+* [h5py](https://pypi.org/project/h5py/)
 * [numpy](https://pypi.org/project/numpy/)
 * [PIL](https://pypi.org/project/Pillow/)
 * [pyguymer3](https://github.com/Guymer/PyGuymer3)
