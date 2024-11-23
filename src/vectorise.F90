@@ -60,11 +60,9 @@ PROGRAM main
     CHARACTER(len = 256)                                                        :: errmsg
     CHARACTER(len = 256)                                                        :: dname
     CHARACTER(len = 256)                                                        :: fnameBIN
-    CHARACTER(len = 256)                                                        :: fnameCSV
     CHARACTER(len = 256)                                                        :: fnameHDF
     CHARACTER(len = 256)                                                        :: fnamePGM
     LOGICAL                                                                     :: fexist
-    INTEGER                                                                     :: cUnit
     INTEGER                                                                     :: errnum
 
     ! Declare HDF5 variables ...
@@ -131,7 +129,7 @@ PROGRAM main
         !       un-scaled dataset is 8,752m ASL.
         DO z = 250_INT16, 8750_INT16, 250_INT16
             ! Determine directory name and make it ...
-            WRITE(dname, fmt = '("../atad/scale=", i2.2, "km/elev=", i4.4, "m")') scale, z
+            WRITE(dname, fmt = '("../atad/scale=", i2.2, "km")') scale, z
             CALL EXECUTE_COMMAND_LINE(                                          &
                 "mkdir -p " // TRIM(dname),                                     &
                   cmdmsg = errmsg,                                              &
@@ -246,29 +244,6 @@ PROGRAM main
                         STOP
                     END IF
 
-                    ! Determine file name ...
-                    WRITE(fnameCSV, fmt = '("../atad/scale=", i2.2, "km/elev=", i4.4, "m/ring=", i6.6, ".csv")') scale, z, ring
-
-                    ! Open CSV ...
-                    OPEN(                                                       &
-                         action = "WRITE",                                      &
-                           file = TRIM(fnameCSV),                               &
-                           form = "FORMATTED",                                  &
-                          iomsg = errmsg,                                       &
-                         iostat = errnum,                                       &
-                        newunit = cUnit,                                        &
-                           sign = "PLUS",                                       &
-                         status = "REPLACE"                                     &
-                    )
-                    IF(errnum /= 0)THEN
-                        WRITE(fmt = '("ERROR: ", a, ". ERRMSG = ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "failed to open CSV", TRIM(errmsg), errnum
-                        FLUSH(unit = ERROR_UNIT)
-                        STOP
-                    END IF
-
-                    ! Write header ...
-                    WRITE(fmt = '(a)', unit = cUnit) "lon,lat"
-
                     ! **********************************************************
 
                     ! Initialize counter and arrays ...
@@ -277,22 +252,20 @@ PROGRAM main
                     lons = 0.0e0_REAL64                                         ! [°]
 
                     ! Set initial location, mark the pixel as being used,
-                    ! increment counter, populate arrays and write out values ...
+                    ! increment counter and populate arrays ...
                     ixOld = ix                                                  ! [px]
                     iyOld = iy                                                  ! [px]
                     used(ixOld, iyOld) = 0_INT8
                     step = step + 1_INT64                                       ! [#]
                     lats(step) = y(iyOld)                                       ! [°]
                     lons(step) = x(ixOld)                                       ! [°]
-                    WRITE(fmt = '(f8.3, ",", f8.3)', unit = cUnit) lons(step), lats(step)
 
                     ! Go eastwards along the northern edge of this pixel,
-                    ! increment counter, populate arrays and write out values ...
+                    ! increment counter and populate arrays ...
                     CALL sub_go_east(ixOld, iyOld, ixNew, iyNew)
                     step = step + 1_INT64                                       ! [#]
                     lats(step) = y(iyNew)                                       ! [°]
                     lons(step) = x(ixNew)                                       ! [°]
-                    WRITE(fmt = '(f8.3, ",", f8.3)', unit = cUnit) lons(step), lats(step)
 
                     ! Start infinite loop ...
                     DO
@@ -351,11 +324,10 @@ PROGRAM main
                             iyOld = iyNew                                       ! [px]
                             used(ixOld, iyOld) = 0_INT8
 
-                            ! Go northwards, populate arrays and write out values ...
+                            ! Go northwards and populate arrays ...
                             CALL sub_going_north(ixOld, iyOld, elev, z, ixNew, iyNew)
                             lats(step) = y(iyNew)                               ! [°]
                             lons(step) = x(ixNew)                               ! [°]
-                            WRITE(fmt = '(f8.3, ",", f8.3)', unit = cUnit) lons(step), lats(step)
                             CYCLE
                         END IF
 
@@ -366,11 +338,10 @@ PROGRAM main
                             iyOld = iyNew                                       ! [px]
                             used(ixOld - 1_INT64, iyOld) = 0_INT8
 
-                            ! Go eastwards, populate arrays and write out values ...
+                            ! Go eastwards and populate arrays ...
                             CALL sub_going_east(ixOld, iyOld, elev, z, ixNew, iyNew)
                             lats(step) = y(iyNew)                               ! [°]
                             lons(step) = x(ixNew)                               ! [°]
-                            WRITE(fmt = '(f8.3, ",", f8.3)', unit = cUnit) lons(step), lats(step)
                             CYCLE
                         END IF
 
@@ -381,11 +352,10 @@ PROGRAM main
                             iyOld = iyNew                                       ! [px]
                             used(ixOld - 1_INT64, iyOld - 1_INT64) = 0_INT8
 
-                            ! Go southwards, populate arrays and write out values ...
+                            ! Go southwards and populate arrays ...
                             CALL sub_going_south(ixOld, iyOld, elev, z, ixNew, iyNew)
                             lats(step) = y(iyNew)                               ! [°]
                             lons(step) = x(ixNew)                               ! [°]
-                            WRITE(fmt = '(f8.3, ",", f8.3)', unit = cUnit) lons(step), lats(step)
                             CYCLE
                         END IF
 
@@ -396,11 +366,10 @@ PROGRAM main
                             iyOld = iyNew                                       ! [px]
                             used(ixOld, iyOld - 1_INT64) = 0_INT8
 
-                            ! Go westwards, populate arrays and write out values ...
+                            ! Go westwards and populate arrays ...
                             CALL sub_going_west(ixOld, iyOld, elev, z, ixNew, iyNew)
                             lats(step) = y(iyNew)                               ! [°]
                             lons(step) = x(ixNew)                               ! [°]
-                            WRITE(fmt = '(f8.3, ",", f8.3)', unit = cUnit) lons(step), lats(step)
                             CYCLE
                         END IF
 
@@ -411,9 +380,6 @@ PROGRAM main
                     END DO
 
                     ! **********************************************************
-
-                    ! Close CSV ...
-                    CLOSE(unit = cUnit)
 
                     ! Close HDF5 group ...
                     CALL H5GCLOSE_F(                                            &
@@ -437,6 +403,15 @@ PROGRAM main
                 END DO
             END DO
 
+            ! Save mask ...
+            CALL sub_save_array_as_PGM(used, TRIM(fnamePGM))
+
+            ! Clean up ...
+            DEALLOCATE(x)
+            DEALLOCATE(y)
+            DEALLOCATE(elev)
+            DEALLOCATE(used)
+
             ! Close HDF5 file ...
             CALL H5FCLOSE_F(                                                    &
                 file_id = hUnit,                                                &
@@ -447,15 +422,6 @@ PROGRAM main
                 FLUSH(unit = ERROR_UNIT)
                 STOP
             END IF
-
-            ! Save mask ...
-            CALL sub_save_array_as_PGM(used, TRIM(fnamePGM))
-
-            ! Clean up ...
-            DEALLOCATE(x)
-            DEALLOCATE(y)
-            DEALLOCATE(elev)
-            DEALLOCATE(used)
 
             WRITE(fmt = '(a)', unit = OUTPUT_UNIT) "stop here for the time being"
             FLUSH(unit = OUTPUT_UNIT)
