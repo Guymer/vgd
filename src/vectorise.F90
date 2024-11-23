@@ -130,7 +130,7 @@ PROGRAM main
         !       un-scaled dataset is 8,752m ASL.
         DO z = 250_INT16, 8750_INT16, 250_INT16
             ! Determine output directory name and make it ...
-            WRITE(dname, fmt = '("../atad/scale=", i2.2, "km")') scale
+            WRITE(dname, fmt = '("../data/scale=", i2.2, "km")') scale
             CALL EXECUTE_COMMAND_LINE(                                          &
                 "mkdir -p " // TRIM(dname),                                     &
                   cmdmsg = errmsg,                                              &
@@ -143,8 +143,8 @@ PROGRAM main
             END IF
 
             ! Determine output file names ...
-            WRITE(fnameHDF, fmt = '("../atad/scale=", i2.2, "km/elev=", i4.4, "m.h5")') scale, z
-            WRITE(fnamePGM, fmt = '("../atad/scale=", i2.2, "km/elev=", i4.4, "m.pgm")') scale, z
+            WRITE(fnameHDF, fmt = '("../data/scale=", i2.2, "km/elev=", i4.4, "m.h5")') scale, z
+            WRITE(fnamePGM, fmt = '("../data/scale=", i2.2, "km/elev=", i4.4, "m.pgm")') scale, z
 
             ! Skip if the output file exists ...
             INQUIRE(file = TRIM(fnameHDF), exist = fexist)
