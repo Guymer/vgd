@@ -4,6 +4,7 @@ PROGRAM main
     USE mod_safe,           ONLY:   sub_allocate_array,                         &
                                     sub_load_array_from_BIN,                    &
                                     sub_save_array_as_PGM
+    USE H5F
 
     IMPLICIT NONE
 
@@ -37,10 +38,14 @@ PROGRAM main
     CHARACTER(len = 256)                                                        :: dname
     CHARACTER(len = 256)                                                        :: fnameBIN
     CHARACTER(len = 256)                                                        :: fnameCSV
+    CHARACTER(len = 256)                                                        :: fnameHDF
     CHARACTER(len = 256)                                                        :: fnamePGM
     LOGICAL                                                                     :: fexist
+    INTEGER                                                                     :: cUnit
     INTEGER                                                                     :: errnum
-    INTEGER                                                                     :: funit
+
+    ! Declare HDF5 variables ...
+    INTEGER(kind = HID_T)                                                       :: hUnit
 
     ! NOTE: The arrays go:
     !       ( 1, 1) ... (nx, 1)
@@ -98,6 +103,23 @@ PROGRAM main
             )
             IF(errnum /= 0)THEN
                 WRITE(fmt = '("ERROR: ", a, ". ERRMSG = ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "mkdir failed", TRIM(errmsg), errnum
+                FLUSH(unit = ERROR_UNIT)
+                STOP
+            END IF
+
+            ! Determine file names ...
+            WRITE(fnameHDF, fmt = '("../data/scale=", i2.2, "km/elev=", i4.4, "m.h5")') scale, z
+            WRITE(fnamePGM, fmt = '("../data/scale=", i2.2, "km/elev=", i4.4, "m.pgm")') scale, z
+
+            ! Create HDF5 file ...
+            CALL h5fcreate_f(                                                   &
+                access_flags = H5F_ACC_TRUNC_F,                                 &
+                        name = TRIM(fnameHDF),                                  &
+                     file_id = hUnit,                                           &
+                      hdferr = errnum                                           &
+            )
+            IF(errnum /= 0)THEN
+                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "h5fcreate_f() failed", errnum
                 FLUSH(unit = ERROR_UNIT)
                 STOP
             END IF
@@ -173,7 +195,7 @@ PROGRAM main
                            form = "FORMATTED",                                  &
                           iomsg = errmsg,                                       &
                          iostat = errnum,                                       &
-                        newunit = funit,                                        &
+                        newunit = cUnit,                                        &
                            sign = "PLUS",                                       &
                          status = "REPLACE"                                     &
                     )
@@ -184,7 +206,7 @@ PROGRAM main
                     END IF
 
                     ! Write header ...
-                    WRITE(fmt = '(a)', unit = funit) "lon,lat"
+                    WRITE(fmt = '(a)', unit = cUnit) "lon,lat"
 
                     ! **********************************************************
 
@@ -192,11 +214,11 @@ PROGRAM main
                     ixOld = ix                                                  ! [px]
                     iyOld = iy                                                  ! [px]
                     used(ixOld, iyOld) = 0_INT8
-                    WRITE(fmt = '(f8.3, ",", f8.3)', unit = funit) x(ixOld), y(iyOld)
+                    WRITE(fmt = '(f8.3, ",", f8.3)', unit = cUnit) x(ixOld), y(iyOld)
 
                     ! Go eastwards along the northern edge of this pixel ...
                     CALL sub_go_east(ixOld, iyOld, ixNew, iyNew)
-                    WRITE(fmt = '(f8.3, ",", f8.3)', unit = funit) x(ixNew), y(iyNew)
+                    WRITE(fmt = '(f8.3, ",", f8.3)', unit = cUnit) x(ixNew), y(iyNew)
 
                     ! Initialize counter ...
                     step = 0_INT64                                              ! [#]
@@ -228,7 +250,7 @@ PROGRAM main
 
                             ! Go northwards ...
                             CALL sub_going_north(ixOld, iyOld, elev, z, ixNew, iyNew)
-                            WRITE(fmt = '(f8.3, ",", f8.3)', unit = funit) x(ixNew), y(iyNew)
+                            WRITE(fmt = '(f8.3, ",", f8.3)', unit = cUnit) x(ixNew), y(iyNew)
                             CYCLE
                         END IF
 
@@ -241,7 +263,7 @@ PROGRAM main
 
                             ! Go eastwards ...
                             CALL sub_going_east(ixOld, iyOld, elev, z, ixNew, iyNew)
-                            WRITE(fmt = '(f8.3, ",", f8.3)', unit = funit) x(ixNew), y(iyNew)
+                            WRITE(fmt = '(f8.3, ",", f8.3)', unit = cUnit) x(ixNew), y(iyNew)
                             CYCLE
                         END IF
 
@@ -254,7 +276,7 @@ PROGRAM main
 
                             ! Go southwards ...
                             CALL sub_going_south(ixOld, iyOld, elev, z, ixNew, iyNew)
-                            WRITE(fmt = '(f8.3, ",", f8.3)', unit = funit) x(ixNew), y(iyNew)
+                            WRITE(fmt = '(f8.3, ",", f8.3)', unit = cUnit) x(ixNew), y(iyNew)
                             CYCLE
                         END IF
 
@@ -267,7 +289,7 @@ PROGRAM main
 
                             ! Go westwards ...
                             CALL sub_going_west(ixOld, iyOld, elev, z, ixNew, iyNew)
-                            WRITE(fmt = '(f8.3, ",", f8.3)', unit = funit) x(ixNew), y(iyNew)
+                            WRITE(fmt = '(f8.3, ",", f8.3)', unit = cUnit) x(ixNew), y(iyNew)
                             CYCLE
                         END IF
 
@@ -280,7 +302,7 @@ PROGRAM main
                     ! **********************************************************
 
                     ! Close CSV ...
-                    CLOSE(unit = funit)
+                    CLOSE(unit = cUnit)
 
                     ! Increment counter and crash if too many rings have been
                     ! made ...
@@ -293,8 +315,16 @@ PROGRAM main
                 END DO
             END DO
 
-            ! Determine file name ...
-            WRITE(fnamePGM, fmt = '("../data/scale=", i2.2, "km/elev=", i4.4, "m.pgm")') scale, z
+            ! Close HDF5 file ...
+            CALL h5fclose_f(                                                    &
+                file_id = hUnit,                                                &
+                 hdferr = errnum                                                &
+            )
+            IF(errnum /= 0)THEN
+                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "h5fclose_f() failed", errnum
+                FLUSH(unit = ERROR_UNIT)
+                STOP
+            END IF
 
             ! Save mask ...
             CALL sub_save_array_as_PGM(used, TRIM(fnamePGM))
