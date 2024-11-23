@@ -40,7 +40,9 @@ PROGRAM main
     INTEGER(kind = INT8), ALLOCATABLE, DIMENSION(:, :)                          :: used
     INTEGER(kind = INT16)                                                       :: z
     INTEGER(kind = INT16), ALLOCATABLE, DIMENSION(:, :)                         :: elev
-    INTEGER(kind = INT64)                                                       :: iscale
+    INTEGER(kind = INT64)                                                       :: iRing
+    INTEGER(kind = INT64)                                                       :: iScale
+    INTEGER(kind = INT64)                                                       :: iStep
     INTEGER(kind = INT64)                                                       :: ix
     INTEGER(kind = INT64)                                                       :: iy
     INTEGER(kind = INT64)                                                       :: ixNew
@@ -49,9 +51,7 @@ PROGRAM main
     INTEGER(kind = INT64)                                                       :: iyOld
     INTEGER(kind = INT64)                                                       :: nxScaled
     INTEGER(kind = INT64)                                                       :: nyScaled
-    INTEGER(kind = INT64)                                                       :: ring
     INTEGER(kind = INT64)                                                       :: scale
-    INTEGER(kind = INT64)                                                       :: step
     REAL(kind = REAL64), ALLOCATABLE, DIMENSION(:)                              :: lats
     REAL(kind = REAL64), ALLOCATABLE, DIMENSION(:)                              :: lons
     REAL(kind = REAL64), ALLOCATABLE, DIMENSION(:)                              :: x
@@ -91,9 +91,9 @@ PROGRAM main
     CALL sub_allocate_array(lons, "lons", stepMax, .TRUE._INT8)
 
     ! Loop over scales ...
-    DO iscale = 0_INT64, 5_INT64
+    DO iScale = 0_INT64, 5_INT64
         ! Determine scale ...
-        scale = 2_INT64 ** iscale                                               ! [km]
+        scale = 2_INT64 ** iScale                                               ! [km]
 
         ! Check scale ...
         IF(MOD(nx, scale) /= 0_INT64)THEN
@@ -107,11 +107,11 @@ PROGRAM main
             STOP
         END IF
 
-        ! Determine file name and skip if it is missing ...
+        ! Determine input file name and skip if it does not exist ...
         WRITE(fnameBIN, fmt = '("../data/scale=", i2.2, "km.bin")') scale
         INQUIRE(file = TRIM(fnameBIN), exist = fexist)
         IF(.NOT. fexist)THEN
-            WRITE(fmt = '("Skipping ", i2, "km.")', unit = OUTPUT_UNIT) scale
+            WRITE(fmt = '("Skipping ", i2, "km (the input does not exist).")', unit = OUTPUT_UNIT) scale
             FLUSH(unit = OUTPUT_UNIT)
             CYCLE
         END IF
@@ -120,7 +120,7 @@ PROGRAM main
         FLUSH(unit = OUTPUT_UNIT)
 
         ! Skip this scale if the output would be too big ...
-        IF(iscale < 2_INT64)THEN
+        IF(iScale < 2_INT64)THEN
             CYCLE
         END IF
 
@@ -129,7 +129,7 @@ PROGRAM main
         ! NOTE: The output of "downscale" reports that the highest pixel in the
         !       un-scaled dataset is 8,752m ASL.
         DO z = 250_INT16, 8750_INT16, 250_INT16
-            ! Determine directory name and make it ...
+            ! Determine output directory name and make it ...
             WRITE(dname, fmt = '("../atad/scale=", i2.2, "km")') scale
             CALL EXECUTE_COMMAND_LINE(                                          &
                 "mkdir -p " // TRIM(dname),                                     &
@@ -142,14 +142,14 @@ PROGRAM main
                 STOP
             END IF
 
-            ! Determine file names ...
+            ! Determine output file names ...
             WRITE(fnameHDF, fmt = '("../atad/scale=", i2.2, "km/elev=", i4.4, "m.h5")') scale, z
             WRITE(fnamePGM, fmt = '("../atad/scale=", i2.2, "km/elev=", i4.4, "m.pgm")') scale, z
 
-            ! Skip if the HDF5 exists ...
+            ! Skip if the output file exists ...
             INQUIRE(file = TRIM(fnameHDF), exist = fexist)
             IF(fexist)THEN
-                WRITE(fmt = '(" > Skipping for elevation of ", i4, "m.")', unit = OUTPUT_UNIT) z
+                WRITE(fmt = '(" > Skipping for elevation of ", i4, "m (the output already exists).")', unit = OUTPUT_UNIT) z
                 FLUSH(unit = OUTPUT_UNIT)
                 CYCLE
             END IF
@@ -191,19 +191,20 @@ PROGRAM main
             CALL sub_load_array_from_BIN(elev, TRIM(fnameBIN))                  ! [m]
 
             ! HACK: Make sure that none of the plateaus touch the edge of the
-            !       map.
+            !       map and my pathfinding algorithm won't work if it walks off
+            !       the edge.
             elev( 1_INT64, :) = 0_INT16                                         ! [m]
             elev(nxScaled, :) = 0_INT16                                         ! [m]
             elev(:,  1_INT64) = 0_INT16                                         ! [m]
             elev(:, nyScaled) = 0_INT16                                         ! [m]
 
             ! Allocate array and initialize it to say that no pixels have been
-            ! used so far  ...
+            ! used so far ...
             CALL sub_allocate_array(used, "used", nxScaled, nyScaled, .TRUE._INT8)
             used = 127_INT8
 
             ! Initialize counter ...
-            ring = 0_INT64                                                      ! [#]
+            iRing = 0_INT64                                                     ! [#]
 
             ! Loop over x-axis ...
             DO ix = 2_INT64, nxScaled - 1_INT64
@@ -232,7 +233,7 @@ PROGRAM main
                     END IF
 
                     ! Create HDF5 group ...
-                    WRITE(groupName, fmt = '("ring=", i6.6)') ring
+                    WRITE(groupName, fmt = '("ring=", i6.6)') iRing
                     CALL H5GCREATE_F(                                           &
                         grp_id = gUnit,                                         &
                         hdferr = errnum,                                        &
@@ -248,7 +249,7 @@ PROGRAM main
                     ! **********************************************************
 
                     ! Initialize counter and arrays ...
-                    step = 0_INT64                                              ! [#]
+                    iStep = 0_INT64                                             ! [#]
                     lats = 0.0e0_REAL64                                         ! [°]
                     lons = 0.0e0_REAL64                                         ! [°]
 
@@ -257,23 +258,23 @@ PROGRAM main
                     ixOld = ix                                                  ! [px]
                     iyOld = iy                                                  ! [px]
                     used(ixOld, iyOld) = 0_INT8
-                    step = step + 1_INT64                                       ! [#]
-                    lats(step) = y(iyOld)                                       ! [°]
-                    lons(step) = x(ixOld)                                       ! [°]
+                    iStep = iStep + 1_INT64                                     ! [#]
+                    lats(iStep) = y(iyOld)                                      ! [°]
+                    lons(iStep) = x(ixOld)                                      ! [°]
 
                     ! Go eastwards along the northern edge of this pixel,
                     ! increment counter and populate arrays ...
                     CALL sub_go_east(ixOld, iyOld, ixNew, iyNew)
-                    step = step + 1_INT64                                       ! [#]
-                    lats(step) = y(iyNew)                                       ! [°]
-                    lons(step) = x(ixNew)                                       ! [°]
+                    iStep = iStep + 1_INT64                                     ! [#]
+                    lats(iStep) = y(iyNew)                                      ! [°]
+                    lons(iStep) = x(ixNew)                                      ! [°]
 
                     ! Start infinite loop ...
                     DO
                         ! Increment counter and crash if too many steps have
                         ! been made ...
-                        step = step + 1_INT64                                   ! [#]
-                        IF(step >= stepMax)THEN
+                        iStep = iStep + 1_INT64                                 ! [#]
+                        IF(iStep >= stepMax)THEN
                             WRITE(fmt = '("ERROR: ", a, ".")', unit = ERROR_UNIT) "exceeded stepMax"
                             FLUSH(unit = ERROR_UNIT)
                             STOP
@@ -284,7 +285,7 @@ PROGRAM main
                             ! Create HDF5 dataset ...
                             CALL H5LTMAKE_DATASET_F(                            &
                                       buf = lats,                               &
-                                     dims = (/ INT(step, kind = HSIZE_T) /),    &
+                                     dims = (/ INT(iStep, kind = HSIZE_T) /),   &
                                 dset_name = "lats",                             &
                                   errcode = errnum,                             &
                                    loc_id = gUnit,                              &
@@ -300,7 +301,7 @@ PROGRAM main
                             ! Create HDF5 dataset ...
                             CALL H5LTMAKE_DATASET_F(                            &
                                       buf = lons,                               &
-                                     dims = (/ INT(step, kind = HSIZE_T) /),    &
+                                     dims = (/ INT(iStep, kind = HSIZE_T) /),   &
                                 dset_name = "lons",                             &
                                   errcode = errnum,                             &
                                    loc_id = gUnit,                              &
@@ -313,64 +314,64 @@ PROGRAM main
                                 STOP
                             END IF
 
-                            WRITE(fmt = '("   > Ring ", i6, " got back to the start after ", i6, " steps.")', unit = OUTPUT_UNIT) ring, step
+                            WRITE(fmt = '("   > Ring ", i6, " got back to the start after ", i6, " steps.")', unit = OUTPUT_UNIT) iRing, iStep
                             FLUSH(unit = OUTPUT_UNIT)
                             EXIT
                         END IF
 
                         ! Check if we went north ...
                         IF(ixNew == ixOld .AND. iyNew == iyOld - 1_INT64)THEN
-                            ! Move location ...
+                            ! Move location and mark the pixel as being used ...
                             ixOld = ixNew                                       ! [px]
                             iyOld = iyNew                                       ! [px]
                             used(ixOld, iyOld) = 0_INT8
 
                             ! Go northwards and populate arrays ...
                             CALL sub_going_north(ixOld, iyOld, elev, z, ixNew, iyNew)
-                            lats(step) = y(iyNew)                               ! [°]
-                            lons(step) = x(ixNew)                               ! [°]
+                            lats(iStep) = y(iyNew)                              ! [°]
+                            lons(iStep) = x(ixNew)                              ! [°]
                             CYCLE
                         END IF
 
                         ! Check if we went east ...
                         IF(ixNew == ixOld + 1_INT64 .AND. iyNew == iyOld)THEN
-                            ! Move location ...
+                            ! Move location and mark the pixel as being used ...
                             ixOld = ixNew                                       ! [px]
                             iyOld = iyNew                                       ! [px]
                             used(ixOld - 1_INT64, iyOld) = 0_INT8
 
                             ! Go eastwards and populate arrays ...
                             CALL sub_going_east(ixOld, iyOld, elev, z, ixNew, iyNew)
-                            lats(step) = y(iyNew)                               ! [°]
-                            lons(step) = x(ixNew)                               ! [°]
+                            lats(iStep) = y(iyNew)                              ! [°]
+                            lons(iStep) = x(ixNew)                              ! [°]
                             CYCLE
                         END IF
 
                         ! Check if we went south ...
                         IF(ixNew == ixOld .AND. iyNew == iyOld + 1_INT64)THEN
-                            ! Move location ...
+                            ! Move location and mark the pixel as being used ...
                             ixOld = ixNew                                       ! [px]
                             iyOld = iyNew                                       ! [px]
                             used(ixOld - 1_INT64, iyOld - 1_INT64) = 0_INT8
 
                             ! Go southwards and populate arrays ...
                             CALL sub_going_south(ixOld, iyOld, elev, z, ixNew, iyNew)
-                            lats(step) = y(iyNew)                               ! [°]
-                            lons(step) = x(ixNew)                               ! [°]
+                            lats(iStep) = y(iyNew)                              ! [°]
+                            lons(iStep) = x(ixNew)                              ! [°]
                             CYCLE
                         END IF
 
                         ! Check if we went west ...
                         IF(ixNew == ixOld - 1_INT64 .AND. iyNew == iyOld)THEN
-                            ! Move location ...
+                            ! Move location and mark the pixel as being used ...
                             ixOld = ixNew                                       ! [px]
                             iyOld = iyNew                                       ! [px]
                             used(ixOld, iyOld - 1_INT64) = 0_INT8
 
                             ! Go westwards and populate arrays ...
                             CALL sub_going_west(ixOld, iyOld, elev, z, ixNew, iyNew)
-                            lats(step) = y(iyNew)                               ! [°]
-                            lons(step) = x(ixNew)                               ! [°]
+                            lats(iStep) = y(iyNew)                              ! [°]
+                            lons(iStep) = x(ixNew)                              ! [°]
                             CYCLE
                         END IF
 
@@ -395,8 +396,8 @@ PROGRAM main
 
                     ! Increment counter and crash if too many rings have been
                     ! made ...
-                    ring = ring + 1_INT64                                       ! [#]
-                    IF(ring >= ringMax)THEN
+                    iRing = iRing + 1_INT64                                     ! [#]
+                    IF(iRing >= ringMax)THEN
                         WRITE(fmt = '("ERROR: ", a, ".")', unit = ERROR_UNIT) "exceeded ringMax"
                         FLUSH(unit = ERROR_UNIT)
                         STOP
@@ -416,7 +417,7 @@ PROGRAM main
             ! Create HDF5 attribute ...
             CALL H5LTSET_ATTRIBUTE_INT_F(                                       &
                 attr_name = "nRings",                                           &
-                      buf = (/ INT(ring) /),                                    &
+                      buf = (/ INT(iRing) /),                                   &
                   errcode = errnum,                                             &
                    loc_id = hUnit,                                              &
                  obj_name = "/",                                                &
