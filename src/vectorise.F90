@@ -34,8 +34,8 @@ PROGRAM main
     INTEGER(kind = INT64), PARAMETER                                            :: nx = 43200_INT64
     INTEGER(kind = INT64), PARAMETER                                            :: ny = 21600_INT64
     INTEGER(kind = INT64), PARAMETER                                            :: ringMax = 1048576_INT64              ! NOTE: As of 23/Nov/2024 the maximum actually written is 19,441.
-    INTEGER(kind = INT64), PARAMETER                                            :: sizeMax = 250000000_INT64
     INTEGER(kind = INT64), PARAMETER                                            :: stepMax = 1048576_INT64              ! NOTE: As of 23/Nov/2024 the maximum actually written is 91,083.
+    REAL(kind = REAL64), PARAMETER                                              :: sizeMax = 250.0e0_REAL64
 
     ! Declare variables ...
     INTEGER(kind = INT8), ALLOCATABLE, DIMENSION(:, :)                          :: used
@@ -53,6 +53,7 @@ PROGRAM main
     INTEGER(kind = INT64)                                                       :: nxScaled
     INTEGER(kind = INT64)                                                       :: nyScaled
     INTEGER(kind = INT64)                                                       :: scale
+    REAL(kind = REAL64)                                                         :: mega
     REAL(kind = REAL64), ALLOCATABLE, DIMENSION(:)                              :: lats
     REAL(kind = REAL64), ALLOCATABLE, DIMENSION(:)                              :: lons
     REAL(kind = REAL64), ALLOCATABLE, DIMENSION(:)                              :: x
@@ -124,9 +125,12 @@ PROGRAM main
         WRITE(fmt = '("Vectorising ", i2, "km ...")', unit = OUTPUT_UNIT) scale
         FLUSH(unit = OUTPUT_UNIT)
 
+        ! Find out how many mega-pixels there are at this scale ...
+        mega = REAL(nxScaled * nyScaled, kind = REAL64) / 1.0e6_REAL64          ! [Mpx]
+
         ! Skip this scale if the output would be too big ...
-        IF(nxScaled * nyScaled > sizeMax)THEN
-            WRITE(fmt = '("  Skipping (the PGM would be ", f5.1, " Mpx).")', unit = OUTPUT_UNIT) REAL(nxScaled * nyScaled, kind = REAL64) / 1.0e6_REAL64
+        IF(mega > sizeMax)THEN
+            WRITE(fmt = '("  Skipping (the PGM would be ", f5.1, " Mpx).")', unit = OUTPUT_UNIT) mega
             CYCLE
         END IF
 
