@@ -194,7 +194,7 @@ PROGRAM main
                         grp_id = gUnit,                                         &
                         hdferr = errnum,                                        &
                         loc_id = hUnit,                                         &
-                          name = TRIM(groupName),                               &
+                          name = TRIM(groupName)                                &
                     )
                     IF(errnum /= 0)THEN
                         WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "h5gcreate_f() failed", errnum
@@ -324,7 +324,7 @@ PROGRAM main
                     ! Close HDF5 group ...
                     CALL h5gclose_f(                                            &
                         grp_id = gUnit,                                         &
-                        hdferr = errnum,                                        &
+                        hdferr = errnum                                         &
                     )
                     IF(errnum /= 0)THEN
                         WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "h5gclose_f() failed", errnum
