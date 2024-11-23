@@ -5,23 +5,27 @@ PROGRAM main
     !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_g.html
     !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_l_t.html
     !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_t.html
-    USE ISO_FORTRAN_ENV
+    USE ISO_FORTRAN_ENV,    ONLY:   ERROR_UNIT,                                 &
+                                    INT8,                                       &
+                                    INT16,                                      &
+                                    INT64,                                      &
+                                    OUTPUT_UNIT,                                &
+                                    REAL64
     USE mod_funcs
     USE mod_safe,           ONLY:   sub_allocate_array,                         &
                                     sub_load_array_from_BIN,                    &
                                     sub_save_array_as_PGM
-    USE H5LIB,              ONLY:   h5close_f,                                  &
-                                    h5open_f
-    USE H5F,                ONLY:   h5fclose_f,                                 &
-                                    h5fcreate_f
-    USE H5G,                ONLY:   h5gclose_f,     &
-                                    h5gcreate_f
-    USE H5LT,               ONLY:   h5ltmake_dataset_f
+    USE H5LIB,              ONLY:   H5CLOSE_F,                                  &
+                                    H5OPEN_F
+    USE H5F,                ONLY:   H5FCLOSE_F,                                 &
+                                    H5FCREATE_F
+    USE H5G,                ONLY:   H5GCLOSE_F,                                 &
+                                    H5GCREATE_F
+    USE H5LT,               ONLY:   H5LTMAKE_DATASET_F
     USE H5T,                ONLY:   H5F_ACC_TRUNC_F,                            &
                                     H5T_IEEE_F64LE,                             &
                                     HID_T,                                      &
-                                    HSIZE_T,                                    &
-                                    H5F_ACC_TRUNC_F
+                                    HSIZE_T
 
     IMPLICIT NONE
 
@@ -74,11 +78,11 @@ PROGRAM main
     !       ( 1,ny) ... (nx,ny)
 
     ! Open HDF5 interface ...
-    CALL h5open_f(                                                              &
+    CALL H5OPEN_F(                                                              &
         error = errnum                                                          &
     )
     IF(errnum /= 0)THEN
-        WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "h5open_f() failed", errnum
+        WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5OPEN_F() failed", errnum
         FLUSH(unit = ERROR_UNIT)
         STOP
     END IF
@@ -155,14 +159,14 @@ PROGRAM main
             FLUSH(unit = OUTPUT_UNIT)
 
             ! Create HDF5 file ...
-            CALL h5fcreate_f(                                                   &
+            CALL H5FCREATE_F(                                                   &
                 access_flags = H5F_ACC_TRUNC_F,                                 &
                         name = TRIM(fnameHDF),                                  &
                      file_id = hUnit,                                           &
                       hdferr = errnum                                           &
             )
             IF(errnum /= 0)THEN
-                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "h5fcreate_f() failed", errnum
+                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5FCREATE_F() failed", errnum
                 FLUSH(unit = ERROR_UNIT)
                 STOP
             END IF
@@ -230,14 +234,14 @@ PROGRAM main
 
                     ! Create HDF5 group ...
                     WRITE(groupName, fmt = '("ring=", i6.6)') ring
-                    CALL h5gcreate_f(                                           &
+                    CALL H5GCREATE_F(                                           &
                         grp_id = gUnit,                                         &
                         hdferr = errnum,                                        &
                         loc_id = hUnit,                                         &
                           name = TRIM(groupName)                                &
                     )
                     IF(errnum /= 0)THEN
-                        WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "h5gcreate_f() failed", errnum
+                        WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5GCREATE_F() failed", errnum
                         FLUSH(unit = ERROR_UNIT)
                         STOP
                     END IF
@@ -304,7 +308,7 @@ PROGRAM main
                         ! Stop looping if we are back at the start ...
                         IF(ixNew == ix .AND. iyNew == iy)THEN
                             ! Create HDF5 dataset ...
-                            CALL h5ltmake_dataset_f(                            &
+                            CALL H5LTMAKE_DATASET_F(                            &
                                       buf = lats,                               &
                                      dims = (/ INT(step, kind = HSIZE_T) /),    &
                                 dset_name = "lats",                             &
@@ -314,13 +318,13 @@ PROGRAM main
                                   type_id = H5T_IEEE_F64LE                      &
                             )
                             IF(errnum /= 0)THEN
-                                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "h5ltmake_dataset_f() failed", errnum
+                                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5LTMAKE_DATASET_F() failed", errnum
                                 FLUSH(unit = ERROR_UNIT)
                                 STOP
                             END IF
 
                             ! Create HDF5 dataset ...
-                            CALL h5ltmake_dataset_f(                            &
+                            CALL H5LTMAKE_DATASET_F(                            &
                                       buf = lons,                               &
                                      dims = (/ INT(step, kind = HSIZE_T) /),    &
                                 dset_name = "lons",                             &
@@ -330,7 +334,7 @@ PROGRAM main
                                   type_id = H5T_IEEE_F64LE                      &
                             )
                             IF(errnum /= 0)THEN
-                                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "h5ltmake_dataset_f() failed", errnum
+                                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5LTMAKE_DATASET_F() failed", errnum
                                 FLUSH(unit = ERROR_UNIT)
                                 STOP
                             END IF
@@ -412,12 +416,12 @@ PROGRAM main
                     CLOSE(unit = cUnit)
 
                     ! Close HDF5 group ...
-                    CALL h5gclose_f(                                            &
+                    CALL H5GCLOSE_F(                                            &
                         grp_id = gUnit,                                         &
                         hdferr = errnum                                         &
                     )
                     IF(errnum /= 0)THEN
-                        WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "h5gclose_f() failed", errnum
+                        WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5GCLOSE_F() failed", errnum
                         FLUSH(unit = ERROR_UNIT)
                         STOP
                     END IF
@@ -434,12 +438,12 @@ PROGRAM main
             END DO
 
             ! Close HDF5 file ...
-            CALL h5fclose_f(                                                    &
+            CALL H5FCLOSE_F(                                                    &
                 file_id = hUnit,                                                &
                  hdferr = errnum                                                &
             )
             IF(errnum /= 0)THEN
-                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "h5fclose_f() failed", errnum
+                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5FCLOSE_F() failed", errnum
                 FLUSH(unit = ERROR_UNIT)
                 STOP
             END IF
@@ -464,11 +468,11 @@ PROGRAM main
     DEALLOCATE(lons)
 
     ! Close HDF5 interface ...
-    CALL h5close_f(                                                             &
+    CALL H5CLOSE_F(                                                             &
         error = errnum                                                          &
     )
     IF(errnum /= 0)THEN
-        WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "h5close_f() failed", errnum
+        WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5CLOSE_F() failed", errnum
         FLUSH(unit = ERROR_UNIT)
         STOP
     END IF
