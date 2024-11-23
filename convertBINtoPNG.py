@@ -19,6 +19,8 @@ if __name__ == "__main__":
     except:
         raise Exception("\"pyguymer3\" is not installed; you need to have the Python module from https://github.com/Guymer/PyGuymer3 located somewhere in your $PYTHONPATH") from None
 
+    # **************************************************************************
+
     # Define the size of the dataset ...
     nx = 43200                                                                  # [px]
     ny = 21600                                                                  # [px]

@@ -30,6 +30,8 @@ if __name__ == "__main__":
     except:
         raise Exception("\"pyguymer3\" is not installed; you need to have the Python module from https://github.com/Guymer/PyGuymer3 located somewhere in your $PYTHONPATH") from None
 
+    # **************************************************************************
+
     # Loop over HDF5 files ...
     for hName in sorted(glob.glob("data/scale=??km/elev=????m.h5")):
         # Deduce GeoJSON name and skip this HDF5 file if it already exists ...

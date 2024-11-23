@@ -22,6 +22,8 @@ if __name__ == "__main__":
     except:
         raise Exception("\"pyguymer3\" is not installed; you need to have the Python module from https://github.com/Guymer/PyGuymer3 located somewhere in your $PYTHONPATH") from None
 
+    # **************************************************************************
+
     # Loop over PGMs ...
     for pgm in sorted(glob.glob("data/scale=??km/elev=????m.pgm")):
         print(f"Converting \"{pgm}\" ...")
