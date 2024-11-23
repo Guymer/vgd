@@ -271,9 +271,7 @@ PROGRAM main
 
                     ! Start infinite loop ...
                     DO
-                        ! Increment counter and crash if too many steps have
-                        ! been made ...
-                        iStep = iStep + 1_INT64                                 ! [#]
+                        ! Crash if too many steps have been made ...
                         IF(iStep >= stepMax)THEN
                             WRITE(fmt = '("ERROR: ", a, ".")', unit = ERROR_UNIT) "exceeded stepMax"
                             FLUSH(unit = ERROR_UNIT)
@@ -326,8 +324,9 @@ PROGRAM main
                             iyOld = iyNew                                       ! [px]
                             used(ixOld, iyOld) = 0_INT8
 
-                            ! Go northwards and populate arrays ...
+                            ! Go northwards, increment counter and populate arrays ...
                             CALL sub_going_north(ixOld, iyOld, elev, z, ixNew, iyNew)
+                            iStep = iStep + 1_INT64                             ! [#]
                             lats(iStep) = y(iyNew)                              ! [°]
                             lons(iStep) = x(ixNew)                              ! [°]
                             CYCLE
@@ -340,8 +339,9 @@ PROGRAM main
                             iyOld = iyNew                                       ! [px]
                             used(ixOld - 1_INT64, iyOld) = 0_INT8
 
-                            ! Go eastwards and populate arrays ...
+                            ! Go eastwards, increment counter and populate arrays ...
                             CALL sub_going_east(ixOld, iyOld, elev, z, ixNew, iyNew)
+                            iStep = iStep + 1_INT64                             ! [#]
                             lats(iStep) = y(iyNew)                              ! [°]
                             lons(iStep) = x(ixNew)                              ! [°]
                             CYCLE
@@ -354,8 +354,9 @@ PROGRAM main
                             iyOld = iyNew                                       ! [px]
                             used(ixOld - 1_INT64, iyOld - 1_INT64) = 0_INT8
 
-                            ! Go southwards and populate arrays ...
+                            ! Go southwards, increment counter and populate arrays ...
                             CALL sub_going_south(ixOld, iyOld, elev, z, ixNew, iyNew)
+                            iStep = iStep + 1_INT64                             ! [#]
                             lats(iStep) = y(iyNew)                              ! [°]
                             lons(iStep) = x(ixNew)                              ! [°]
                             CYCLE
@@ -368,8 +369,9 @@ PROGRAM main
                             iyOld = iyNew                                       ! [px]
                             used(ixOld, iyOld - 1_INT64) = 0_INT8
 
-                            ! Go westwards and populate arrays ...
+                            ! Go westwards, increment counter and populate arrays ...
                             CALL sub_going_west(ixOld, iyOld, elev, z, ixNew, iyNew)
+                            iStep = iStep + 1_INT64                             ! [#]
                             lats(iStep) = y(iyNew)                              ! [°]
                             lons(iStep) = x(ixNew)                              ! [°]
                             CYCLE
@@ -415,6 +417,7 @@ PROGRAM main
             DEALLOCATE(used)
 
             ! Create HDF5 attribute ...
+            ! TODO: This incorrectly makes a length-1 array rather than a scalar.
             CALL H5LTSET_ATTRIBUTE_INT_F(                                       &
                 attr_name = "nRings",                                           &
                       buf = (/ INT(iRing) /),                                   &
