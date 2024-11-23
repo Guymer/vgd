@@ -5,6 +5,7 @@ PROGRAM main
                                     sub_load_array_from_BIN,                    &
                                     sub_save_array_as_PGM
     USE H5F
+    USE H5G
 
     IMPLICIT NONE
 
@@ -45,6 +46,8 @@ PROGRAM main
     INTEGER                                                                     :: errnum
 
     ! Declare HDF5 variables ...
+    CHARACTER(len = 256)                                                        :: groupName
+    INTEGER(kind = HID_T)                                                       :: gUnit
     INTEGER(kind = HID_T)                                                       :: hUnit
 
     ! NOTE: The arrays go:
@@ -95,7 +98,7 @@ PROGRAM main
             FLUSH(unit = OUTPUT_UNIT)
 
             ! Determine directory name and make it ...
-            WRITE(dname, fmt = '("../data/scale=", i2.2, "km/elev=", i4.4, "m")') scale, z
+            WRITE(dname, fmt = '("../atad/scale=", i2.2, "km/elev=", i4.4, "m")') scale, z
             CALL EXECUTE_COMMAND_LINE(                                          &
                 "mkdir -p " // TRIM(dname),                                     &
                   cmdmsg = errmsg,                                              &
@@ -108,8 +111,8 @@ PROGRAM main
             END IF
 
             ! Determine file names ...
-            WRITE(fnameHDF, fmt = '("../data/scale=", i2.2, "km/elev=", i4.4, "m.h5")') scale, z
-            WRITE(fnamePGM, fmt = '("../data/scale=", i2.2, "km/elev=", i4.4, "m.pgm")') scale, z
+            WRITE(fnameHDF, fmt = '("../atad/scale=", i2.2, "km/elev=", i4.4, "m.h5")') scale, z
+            WRITE(fnamePGM, fmt = '("../atad/scale=", i2.2, "km/elev=", i4.4, "m.pgm")') scale, z
 
             ! Create HDF5 file ...
             CALL h5fcreate_f(                                                   &
@@ -185,8 +188,22 @@ PROGRAM main
                         CYCLE
                     END IF
 
+                    ! Create HDF5 group ...
+                    WRITE(groupName, fmt = '("ring=", i6.6)') ring
+                    CALL h5gcreate_f(                                           &
+                        grp_id = gUnit,                                         &
+                        hdferr = errnum,                                        &
+                        loc_id = hUnit,                                         &
+                          name = TRIM(groupName),                               &
+                    )
+                    IF(errnum /= 0)THEN
+                        WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "h5gcreate_f() failed", errnum
+                        FLUSH(unit = ERROR_UNIT)
+                        STOP
+                    END IF
+
                     ! Determine file name ...
-                    WRITE(fnameCSV, fmt = '("../data/scale=", i2.2, "km/elev=", i4.4, "m/ring=", i6.6, ".csv")') scale, z, ring
+                    WRITE(fnameCSV, fmt = '("../atad/scale=", i2.2, "km/elev=", i4.4, "m/ring=", i6.6, ".csv")') scale, z, ring
 
                     ! Open CSV ...
                     OPEN(                                                       &
@@ -303,6 +320,17 @@ PROGRAM main
 
                     ! Close CSV ...
                     CLOSE(unit = cUnit)
+
+                    ! Close HDF5 group ...
+                    CALL h5gclose_f(                                            &
+                        grp_id = gUnit,                                         &
+                        hdferr = errnum,                                        &
+                    )
+                    IF(errnum /= 0)THEN
+                        WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "h5gclose_f() failed", errnum
+                        FLUSH(unit = ERROR_UNIT)
+                        STOP
+                    END IF
 
                     ! Increment counter and crash if too many rings have been
                     ! made ...
