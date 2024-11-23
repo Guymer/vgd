@@ -129,7 +129,7 @@ PROGRAM main
         !       un-scaled dataset is 8,752m ASL.
         DO z = 250_INT16, 8750_INT16, 250_INT16
             ! Determine directory name and make it ...
-            WRITE(dname, fmt = '("../atad/scale=", i2.2, "km")') scale, z
+            WRITE(dname, fmt = '("../atad/scale=", i2.2, "km")') scale
             CALL EXECUTE_COMMAND_LINE(                                          &
                 "mkdir -p " // TRIM(dname),                                     &
                   cmdmsg = errmsg,                                              &
@@ -422,10 +422,6 @@ PROGRAM main
                 FLUSH(unit = ERROR_UNIT)
                 STOP
             END IF
-
-            WRITE(fmt = '(a)', unit = OUTPUT_UNIT) "stop here for the time being"
-            FLUSH(unit = OUTPUT_UNIT)
-            STOP
         END DO
     END DO
 
