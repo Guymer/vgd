@@ -21,6 +21,10 @@ jobs:
                 with:
                     python-version: ${{ matrix.python-version }}
             -
+                name: Install FORTRAN dependencies
+                run: |
+                    sudo apt-get install hdf5-helpers
+            -
                 name: Install Python ${{ matrix.python-version }} dependencies
                 run: |
                     python -m pip install --upgrade pip
@@ -29,12 +33,12 @@ jobs:
             -
                 name: List programs
                 run: |
-                    echo "::notice $(which gfortran)"
                     echo "::notice $(which gmake)"
+                    echo "::notice $(which h5fc)"
                     echo "::notice $(which pip)"
                     echo "::notice $(which python)"
             -
                 name: Compile the FORTRAN code
                 run: |
                     cd main
-                    gmake -r -C src FC=`which gfortran` PYTHON3=`which python` compile
+                    gmake -r -C src FC=`which h5fc` PYTHON3=`which python` compile
