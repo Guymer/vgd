@@ -4,16 +4,16 @@ PROGRAM main
     USE mod_safe,           ONLY:   sub_allocate_array,                         &
                                     sub_load_array_from_BIN,                    &
                                     sub_save_array_as_PGM
-    USE H5F
-    USE H5G
+    USE H5F                         ! NOTE: See https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_f.html
+    USE H5G                         ! NOTE: See https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_g.html
 
     IMPLICIT NONE
 
     ! Declare parameters ...
     INTEGER(kind = INT64), PARAMETER                                            :: nx = 43200_INT64
     INTEGER(kind = INT64), PARAMETER                                            :: ny = 21600_INT64
-    INTEGER(kind = INT64), PARAMETER                                            :: ringMax = 1048576_INT64
-    INTEGER(kind = INT64), PARAMETER                                            :: stepMax = 1073741824_INT64
+    INTEGER(kind = INT64), PARAMETER                                            :: ringMax = 1048576_INT64              ! NOTE: As of 23/Nov/2024 the maximum actually written is 19,441.
+    INTEGER(kind = INT64), PARAMETER                                            :: stepMax = 1048576_INT64              ! NOTE: As of 23/Nov/2024 the maximum actually written is 91,083.
 
     ! Declare variables ...
     INTEGER(kind = INT8), ALLOCATABLE, DIMENSION(:, :)                          :: used
