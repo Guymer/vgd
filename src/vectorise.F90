@@ -4,8 +4,11 @@ PROGRAM main
     USE mod_safe,           ONLY:   sub_allocate_array,                         &
                                     sub_load_array_from_BIN,                    &
                                     sub_save_array_as_PGM
+    USE H5LIB                       ! NOTE: See https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5.html
     USE H5F                         ! NOTE: See https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_f.html
     USE H5G                         ! NOTE: See https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_g.html
+    USE H5LT                        ! NOTE: See https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_l_t.html
+    USE H5T                         ! NOTE: See https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_t.html
 
     IMPLICIT NONE
 
@@ -31,6 +34,8 @@ PROGRAM main
     INTEGER(kind = INT64)                                                       :: ring
     INTEGER(kind = INT64)                                                       :: scale
     INTEGER(kind = INT64)                                                       :: step
+    REAL(kind = REAL64), ALLOCATABLE, DIMENSION(:)                              :: lats
+    REAL(kind = REAL64), ALLOCATABLE, DIMENSION(:)                              :: lons
     REAL(kind = REAL64), ALLOCATABLE, DIMENSION(:)                              :: x
     REAL(kind = REAL64), ALLOCATABLE, DIMENSION(:)                              :: y
 
@@ -54,6 +59,20 @@ PROGRAM main
     !       ( 1, 1) ... (nx, 1)
     !         ...         ...
     !       ( 1,ny) ... (nx,ny)
+
+    ! Open HDF5 interface ...
+    CALL h5open_f(                                                              &
+        error = errnum                                                          &
+    )
+    IF(errnum /= 0)THEN
+        WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "h5open_f() failed", errnum
+        FLUSH(unit = ERROR_UNIT)
+        STOP
+    END IF
+
+    ! Allocate arrays ...
+    CALL sub_allocate_array(lats, "lats", stepMax, .TRUE._INT8)
+    CALL sub_allocate_array(lons, "lons", stepMax, .TRUE._INT8)
 
     ! Loop over scales ...
     DO iscale = 0_INT64, 5_INT64
@@ -94,9 +113,6 @@ PROGRAM main
         ! NOTE: The output of "downscale" reports that the highest pixel in the
         !       un-scaled dataset is 8,752m ASL.
         DO z = 250_INT16, 8750_INT16, 250_INT16
-            WRITE(fmt = '(" > Searching for elevation of ", i4, "m ...")', unit = OUTPUT_UNIT) z
-            FLUSH(unit = OUTPUT_UNIT)
-
             ! Determine directory name and make it ...
             WRITE(dname, fmt = '("../atad/scale=", i2.2, "km/elev=", i4.4, "m")') scale, z
             CALL EXECUTE_COMMAND_LINE(                                          &
@@ -113,6 +129,17 @@ PROGRAM main
             ! Determine file names ...
             WRITE(fnameHDF, fmt = '("../atad/scale=", i2.2, "km/elev=", i4.4, "m.h5")') scale, z
             WRITE(fnamePGM, fmt = '("../atad/scale=", i2.2, "km/elev=", i4.4, "m.pgm")') scale, z
+
+            ! Skip if the HDF5 exists ...
+            INQUIRE(file = TRIM(fnameHDF), exist = fexist)
+            IF(fexist)THEN
+                WRITE(fmt = '(" > Skipping for elevation of ", i4, "m.")', unit = OUTPUT_UNIT) z
+                FLUSH(unit = OUTPUT_UNIT)
+                CYCLE
+            END IF
+
+            WRITE(fmt = '(" > Searching for elevation of ", i4, "m ...")', unit = OUTPUT_UNIT) z
+            FLUSH(unit = OUTPUT_UNIT)
 
             ! Create HDF5 file ...
             CALL h5fcreate_f(                                                   &
@@ -227,18 +254,28 @@ PROGRAM main
 
                     ! **********************************************************
 
-                    ! Set initial location ...
+                    ! Initialize counter and arrays ...
+                    step = 0_INT64                                              ! [#]
+                    lats = 0.0e0_REAL64                                         ! [°]
+                    lons = 0.0e0_REAL64                                         ! [°]
+
+                    ! Set initial location, mark the pixel as being used,
+                    ! increment counter, populate arrays and write out values ...
                     ixOld = ix                                                  ! [px]
                     iyOld = iy                                                  ! [px]
                     used(ixOld, iyOld) = 0_INT8
-                    WRITE(fmt = '(f8.3, ",", f8.3)', unit = cUnit) x(ixOld), y(iyOld)
+                    step = step + 1_INT64                                       ! [#]
+                    lats(step) = y(iyOld)                                       ! [°]
+                    lons(step) = x(ixOld)                                       ! [°]
+                    WRITE(fmt = '(f8.3, ",", f8.3)', unit = cUnit) lons(step), lats(step)
 
-                    ! Go eastwards along the northern edge of this pixel ...
+                    ! Go eastwards along the northern edge of this pixel,
+                    ! increment counter, populate arrays and write out values ...
                     CALL sub_go_east(ixOld, iyOld, ixNew, iyNew)
-                    WRITE(fmt = '(f8.3, ",", f8.3)', unit = cUnit) x(ixNew), y(iyNew)
-
-                    ! Initialize counter ...
-                    step = 0_INT64                                              ! [#]
+                    step = step + 1_INT64                                       ! [#]
+                    lats(step) = y(iyNew)                                       ! [°]
+                    lons(step) = x(ixNew)                                       ! [°]
+                    WRITE(fmt = '(f8.3, ",", f8.3)', unit = cUnit) lons(step), lats(step)
 
                     ! Start infinite loop ...
                     DO
@@ -253,6 +290,38 @@ PROGRAM main
 
                         ! Stop looping if we are back at the start ...
                         IF(ixNew == ix .AND. iyNew == iy)THEN
+                            ! Create HDF5 dataset ...
+                            CALL h5ltmake_dataset_f(                            &
+                                      buf = lats,                               &
+                                     dims = (/ INT(step, kind = HSIZE_T) /),    &
+                                dset_name = "lats",                             &
+                                  errcode = errnum,                             &
+                                   loc_id = gUnit,                              &
+                                     rank = 1,                                  &
+                                  type_id = H5T_IEEE_F64LE                      &
+                            )
+                            IF(errnum /= 0)THEN
+                                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "h5ltmake_dataset_f() failed", errnum
+                                FLUSH(unit = ERROR_UNIT)
+                                STOP
+                            END IF
+
+                            ! Create HDF5 dataset ...
+                            CALL h5ltmake_dataset_f(                            &
+                                      buf = lons,                               &
+                                     dims = (/ INT(step, kind = HSIZE_T) /),    &
+                                dset_name = "lons",                             &
+                                  errcode = errnum,                             &
+                                   loc_id = gUnit,                              &
+                                     rank = 1,                                  &
+                                  type_id = H5T_IEEE_F64LE                      &
+                            )
+                            IF(errnum /= 0)THEN
+                                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "h5ltmake_dataset_f() failed", errnum
+                                FLUSH(unit = ERROR_UNIT)
+                                STOP
+                            END IF
+
                             WRITE(fmt = '("   > Ring ", i6, " got back to the start after ", i6, " steps.")', unit = OUTPUT_UNIT) ring, step
                             FLUSH(unit = OUTPUT_UNIT)
                             EXIT
@@ -265,9 +334,11 @@ PROGRAM main
                             iyOld = iyNew                                       ! [px]
                             used(ixOld, iyOld) = 0_INT8
 
-                            ! Go northwards ...
+                            ! Go northwards, populate arrays and write out values ...
                             CALL sub_going_north(ixOld, iyOld, elev, z, ixNew, iyNew)
-                            WRITE(fmt = '(f8.3, ",", f8.3)', unit = cUnit) x(ixNew), y(iyNew)
+                            lats(step) = y(iyNew)                               ! [°]
+                            lons(step) = x(ixNew)                               ! [°]
+                            WRITE(fmt = '(f8.3, ",", f8.3)', unit = cUnit) lons(step), lats(step)
                             CYCLE
                         END IF
 
@@ -278,9 +349,11 @@ PROGRAM main
                             iyOld = iyNew                                       ! [px]
                             used(ixOld - 1_INT64, iyOld) = 0_INT8
 
-                            ! Go eastwards ...
+                            ! Go eastwards, populate arrays and write out values ...
                             CALL sub_going_east(ixOld, iyOld, elev, z, ixNew, iyNew)
-                            WRITE(fmt = '(f8.3, ",", f8.3)', unit = cUnit) x(ixNew), y(iyNew)
+                            lats(step) = y(iyNew)                               ! [°]
+                            lons(step) = x(ixNew)                               ! [°]
+                            WRITE(fmt = '(f8.3, ",", f8.3)', unit = cUnit) lons(step), lats(step)
                             CYCLE
                         END IF
 
@@ -291,9 +364,11 @@ PROGRAM main
                             iyOld = iyNew                                       ! [px]
                             used(ixOld - 1_INT64, iyOld - 1_INT64) = 0_INT8
 
-                            ! Go southwards ...
+                            ! Go southwards, populate arrays and write out values ...
                             CALL sub_going_south(ixOld, iyOld, elev, z, ixNew, iyNew)
-                            WRITE(fmt = '(f8.3, ",", f8.3)', unit = cUnit) x(ixNew), y(iyNew)
+                            lats(step) = y(iyNew)                               ! [°]
+                            lons(step) = x(ixNew)                               ! [°]
+                            WRITE(fmt = '(f8.3, ",", f8.3)', unit = cUnit) lons(step), lats(step)
                             CYCLE
                         END IF
 
@@ -304,9 +379,11 @@ PROGRAM main
                             iyOld = iyNew                                       ! [px]
                             used(ixOld, iyOld - 1_INT64) = 0_INT8
 
-                            ! Go westwards ...
+                            ! Go westwards, populate arrays and write out values ...
                             CALL sub_going_west(ixOld, iyOld, elev, z, ixNew, iyNew)
-                            WRITE(fmt = '(f8.3, ",", f8.3)', unit = cUnit) x(ixNew), y(iyNew)
+                            lats(step) = y(iyNew)                               ! [°]
+                            lons(step) = x(ixNew)                               ! [°]
+                            WRITE(fmt = '(f8.3, ",", f8.3)', unit = cUnit) lons(step), lats(step)
                             CYCLE
                         END IF
 
@@ -368,4 +445,18 @@ PROGRAM main
             STOP
         END DO
     END DO
+
+    ! Clean up ...
+    DEALLOCATE(lats)
+    DEALLOCATE(lons)
+
+    ! Close HDF5 interface ...
+    CALL h5close_f(                                                             &
+        error = errnum                                                          &
+    )
+    IF(errnum /= 0)THEN
+        WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "h5close_f() failed", errnum
+        FLUSH(unit = ERROR_UNIT)
+        STOP
+    END IF
 END PROGRAM main
