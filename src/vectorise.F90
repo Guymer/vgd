@@ -1,14 +1,27 @@
 PROGRAM main
+    ! NOTE: For documentation see:
+    !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5.html
+    !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_f.html
+    !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_g.html
+    !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_l_t.html
+    !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_t.html
     USE ISO_FORTRAN_ENV
     USE mod_funcs
     USE mod_safe,           ONLY:   sub_allocate_array,                         &
                                     sub_load_array_from_BIN,                    &
                                     sub_save_array_as_PGM
-    USE H5LIB                       ! NOTE: See https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5.html
-    USE H5F                         ! NOTE: See https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_f.html
-    USE H5G                         ! NOTE: See https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_g.html
-    USE H5LT                        ! NOTE: See https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_l_t.html
-    USE H5T                         ! NOTE: See https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_t.html
+    USE H5LIB,              ONLY:   h5close_f,                                  &
+                                    h5open_f
+    USE H5F,                ONLY:   h5fclose_f,                                 &
+                                    h5fcreate_f
+    USE H5G,                ONLY:   h5gclose_f,     &
+                                    h5gcreate_f
+    USE H5LT,               ONLY:   h5ltmake_dataset_f
+    USE H5T,                ONLY:   H5F_ACC_TRUNC_F,                            &
+                                    H5T_IEEE_F64LE,                             &
+                                    HID_T,                                      &
+                                    HSIZE_T,                                    &
+                                    H5F_ACC_TRUNC_F
 
     IMPLICIT NONE
 
