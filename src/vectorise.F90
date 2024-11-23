@@ -362,6 +362,10 @@ PROGRAM main
             DEALLOCATE(y)
             DEALLOCATE(elev)
             DEALLOCATE(used)
+
+            WRITE(fmt = '(a)', unit = OUTPUT_UNIT) "stop here for the time being"
+            FLUSH(unit = OUTPUT_UNIT)
+            STOP
         END DO
     END DO
 END PROGRAM main
