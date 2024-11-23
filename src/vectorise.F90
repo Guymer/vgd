@@ -21,7 +21,8 @@ PROGRAM main
                                     H5FCREATE_F
     USE H5G,                ONLY:   H5GCLOSE_F,                                 &
                                     H5GCREATE_F
-    USE H5LT,               ONLY:   H5LTMAKE_DATASET_F
+    USE H5LT,               ONLY:   H5LTMAKE_DATASET_F,                         &
+                                    H5LTSET_ATTRIBUTE_INT_F
     USE H5T,                ONLY:   H5F_ACC_TRUNC_F,                            &
                                     H5T_IEEE_F64LE,                             &
                                     HID_T,                                      &
@@ -411,6 +412,21 @@ PROGRAM main
             DEALLOCATE(y)
             DEALLOCATE(elev)
             DEALLOCATE(used)
+
+            ! Create HDF5 attribute ...
+            CALL H5LTSET_ATTRIBUTE_INT_F(                                       &
+                attr_name = "nRings",                                           &
+                      buf = (/ INT(ring) /),                                    &
+                  errcode = errnum,                                             &
+                   loc_id = hUnit,                                              &
+                 obj_name = "/",                                                &
+                     size = 1_HSIZE_T                                           &
+            )
+            IF(errnum /= 0)THEN
+                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5LTSET_ATTRIBUTE_INT_F() failed", errnum
+                FLUSH(unit = ERROR_UNIT)
+                STOP
+            END IF
 
             ! Close HDF5 file ...
             CALL H5FCLOSE_F(                                                    &
