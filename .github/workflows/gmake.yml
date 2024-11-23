@@ -23,7 +23,7 @@ jobs:
             -
                 name: Install FORTRAN dependencies
                 run: |
-                    sudo apt-get install --fix-missing libhdf5-dev
+                    sudo apt-get install --fix-broken --fix-missing libhdf5-dev
                     sudo apt-get install hdf5-helpers
             -
                 name: Install Python ${{ matrix.python-version }} dependencies
