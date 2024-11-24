@@ -19,6 +19,8 @@ if __name__ == "__main__":
     except:
         raise Exception("\"pyguymer3\" is not installed; you need to have the Python module from https://github.com/Guymer/PyGuymer3 located somewhere in your $PYTHONPATH") from None
 
+    # **************************************************************************
+
     # Define the size of the dataset ...
     nx = 43200                                                                  # [px]
     ny = 21600                                                                  # [px]
@@ -46,7 +48,7 @@ if __name__ == "__main__":
         mega = float((nx // scale) * (ny // scale)) / 1.0e6                     # [Mpx]
 
         # Skip this scale if the PNG would be too big ...
-        if mega > 64.0:
+        if mega > 250.0:
             print(f"Skipping \"{iname}\" (the PNG would be {mega:.1f} Mpx).")
             continue
 
