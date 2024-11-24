@@ -169,3 +169,23 @@ if __name__ == "__main__":
                    indent = 4,
                 sort_keys = True,
             )
+
+        # **********************************************************************
+
+        continue
+
+        # Loop over Polygons ...
+        for iPoly, poly in enumerate(polys):
+            # Deduce GeoJSON name ...
+            jName = f'{hName.removesuffix(".h5")}.poly={iPoly:06d}.geojson'
+
+            print(f"Making \"{jName}\" ...")
+
+            # Save Polygon as a GeoJSON ...
+            with open(jName, "wt", encoding = "utf-8") as fObj:
+                geojson.dump(
+                    poly,
+                    fObj,
+                       indent = 4,
+                    sort_keys = True,
+                )
