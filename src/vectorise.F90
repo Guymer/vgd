@@ -330,7 +330,9 @@ PROGRAM main
 
                             ! Write HDF5 dataset ...
                             CALL H5DWRITE_F(                                    &
-                                        buf = C_LOC(lats(1_INT64)),             &
+                                        buf = C_LOC(                            &
+                                    lats(1_INT64)                               &
+                                ),                                              &
                                     dset_id = dUnit,                            &
                                      hdferr = errnum,                           &
                                 mem_type_id = H5KIND_TO_TYPE(                   &
@@ -372,7 +374,9 @@ PROGRAM main
 
                             ! Write HDF5 dataset ...
                             CALL H5DWRITE_F(                                    &
-                                        buf = C_LOC(lons(1_INT64)),             &
+                                        buf = C_LOC(                            &
+                                    lons(1_INT64)                               &
+                                ),                                              &
                                     dset_id = dUnit,                            &
                                      hdferr = errnum,                           &
                                 mem_type_id = H5T_IEEE_F64LE                    &
