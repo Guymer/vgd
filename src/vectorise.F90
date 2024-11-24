@@ -1,10 +1,13 @@
 PROGRAM main
     ! NOTE: For documentation see:
     !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5.html
+    !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_d.html
     !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_f.html
     !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_g.html
     !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_l_t.html
+    !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_s.html
     !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_t.html
+    USE ISO_C_BINDING,      ONLY:   C_LOC
     USE ISO_FORTRAN_ENV,    ONLY:   ERROR_UNIT,                                 &
                                     INT8,                                       &
                                     INT16,                                      &
@@ -17,12 +20,16 @@ PROGRAM main
                                     sub_save_array_as_PGM
     USE H5LIB,              ONLY:   H5CLOSE_F,                                  &
                                     H5OPEN_F
+    USE H5D,                ONLY:   H5DCLOSE_F,                                 &
+                                    H5DCREATE_F,                                &
+                                    H5DWRITE_F
     USE H5F,                ONLY:   H5FCLOSE_F,                                 &
                                     H5FCREATE_F
     USE H5G,                ONLY:   H5GCLOSE_F,                                 &
                                     H5GCREATE_F
-    USE H5LT,               ONLY:   H5LTMAKE_DATASET_F,                         &
-                                    H5LTSET_ATTRIBUTE_INT_F
+    USE H5LT,               ONLY:   H5LTSET_ATTRIBUTE_INT_F
+    USE H5S,                ONLY:   H5SCLOSE_F,                                 &
+                                    H5SCREATE_SIMPLE_F
     USE H5T,                ONLY:   H5F_ACC_TRUNC_F,                            &
                                     H5T_IEEE_F64LE,                             &
                                     HID_T,                                      &
@@ -54,8 +61,8 @@ PROGRAM main
     INTEGER(kind = INT64)                                                       :: nyScaled
     INTEGER(kind = INT64)                                                       :: scale
     REAL(kind = REAL64)                                                         :: mega
-    REAL(kind = REAL64), ALLOCATABLE, DIMENSION(:)                              :: lats
-    REAL(kind = REAL64), ALLOCATABLE, DIMENSION(:)                              :: lons
+    REAL(kind = REAL64), ALLOCATABLE, DIMENSION(:), TARGET                      :: lats
+    REAL(kind = REAL64), ALLOCATABLE, DIMENSION(:), TARGET                      :: lons
     REAL(kind = REAL64), ALLOCATABLE, DIMENSION(:)                              :: x
     REAL(kind = REAL64), ALLOCATABLE, DIMENSION(:)                              :: y
 
@@ -70,8 +77,10 @@ PROGRAM main
 
     ! Declare HDF5 variables ...
     CHARACTER(len = 256)                                                        :: groupName
+    INTEGER(kind = HID_T)                                                       :: dUnit
     INTEGER(kind = HID_T)                                                       :: gUnit
     INTEGER(kind = HID_T)                                                       :: hUnit
+    INTEGER(kind = HID_T)                                                       :: sUnit
 
     ! NOTE: The arrays go:
     !       ( 1, 1) ... (nx, 1)
@@ -286,34 +295,104 @@ PROGRAM main
 
                         ! Stop looping if we are back at the start ...
                         IF(ixNew == ix .AND. iyNew == iy)THEN
-                            ! Create HDF5 dataset ...
-                            CALL H5LTMAKE_DATASET_F(                            &
-                                      buf = lats,                               &
-                                     dims = (/ INT(iStep, kind = HSIZE_T) /),   &
-                                dset_name = "lats",                             &
-                                  errcode = errnum,                             &
-                                   loc_id = gUnit,                              &
-                                     rank = 1,                                  &
-                                  type_id = H5T_IEEE_F64LE                      &
+                            ! Create HDF5 dataspace ...
+                            CALL H5SCREATE_SIMPLE_F(                            &
+                                    dims = (/ INT(iStep, kind = HSIZE_T) /),    &
+                                  hdferr = errnum,                              &
+                                    rank = 1,                                   &
+                                space_id = sUnit                                &
                             )
                             IF(errnum /= 0)THEN
-                                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5LTMAKE_DATASET_F() failed", errnum
+                                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5SCREATE_SIMPLE_F() failed", errnum
                                 FLUSH(unit = ERROR_UNIT)
                                 STOP
                             END IF
 
                             ! Create HDF5 dataset ...
-                            CALL H5LTMAKE_DATASET_F(                            &
-                                      buf = lons,                               &
-                                     dims = (/ INT(iStep, kind = HSIZE_T) /),   &
-                                dset_name = "lons",                             &
-                                  errcode = errnum,                             &
-                                   loc_id = gUnit,                              &
-                                     rank = 1,                                  &
-                                  type_id = H5T_IEEE_F64LE                      &
+                            CALL H5DCREATE_F(                                   &
+                                 dset_id = dUnit,                               &
+                                  hdferr = errnum,                              &
+                                  loc_id = gUnit,                               &
+                                    name = "lats",                              &
+                                space_id = sUnit,                               &
+                                 type_id = H5T_IEEE_F64LE                       &
                             )
                             IF(errnum /= 0)THEN
-                                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5LTMAKE_DATASET_F() failed", errnum
+                                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5DCREATE_F() failed", errnum
+                                FLUSH(unit = ERROR_UNIT)
+                                STOP
+                            END IF
+
+                            ! Write HDF5 dataset ...
+                            CALL H5DWRITE_F(                                    &
+                                        buf = C_LOC(lats(1_INT64)),             &
+                                    dset_id = dUnit,                            &
+                                     hdferr = errnum,                           &
+                                mem_type_id = H5T_IEEE_F64LE                    &
+                            )
+                            IF(errnum /= 0)THEN
+                                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5DWRITE_F() failed", errnum
+                                FLUSH(unit = ERROR_UNIT)
+                                STOP
+                            END IF
+
+                            ! Close HDF5 dataset ...
+                            CALL H5DCLOSE_F(                                    &
+                                dset_id = dUnit,                                &
+                                 hdferr = errnum                                &
+                            )
+                            IF(errnum /= 0)THEN
+                                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5DCLOSE_F() failed", errnum
+                                FLUSH(unit = ERROR_UNIT)
+                                STOP
+                            END IF
+
+                            ! Create HDF5 dataset ...
+                            CALL H5DCREATE_F(                                   &
+                                 dset_id = dUnit,                               &
+                                  hdferr = errnum,                              &
+                                  loc_id = gUnit,                               &
+                                    name = "lons",                              &
+                                space_id = sUnit,                               &
+                                 type_id = H5T_IEEE_F64LE                       &
+                            )
+                            IF(errnum /= 0)THEN
+                                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5DCREATE_F() failed", errnum
+                                FLUSH(unit = ERROR_UNIT)
+                                STOP
+                            END IF
+
+                            ! Write HDF5 dataset ...
+                            CALL H5DWRITE_F(                                    &
+                                        buf = C_LOC(lons(1_INT64)),             &
+                                    dset_id = dUnit,                            &
+                                     hdferr = errnum,                           &
+                                mem_type_id = H5T_IEEE_F64LE                    &
+                            )
+                            IF(errnum /= 0)THEN
+                                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5DWRITE_F() failed", errnum
+                                FLUSH(unit = ERROR_UNIT)
+                                STOP
+                            END IF
+
+                            ! Close HDF5 dataset ...
+                            CALL H5DCLOSE_F(                                    &
+                                dset_id = dUnit,                                &
+                                 hdferr = errnum                                &
+                            )
+                            IF(errnum /= 0)THEN
+                                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5DCLOSE_F() failed", errnum
+                                FLUSH(unit = ERROR_UNIT)
+                                STOP
+                            END IF
+
+                            ! Close HDF5 dataspace ...
+                            CALL H5SCLOSE_F(                                    &
+                                  hdferr = errnum,                              &
+                                space_id = sUnit                                &
+                            )
+                            IF(errnum /= 0)THEN
+                                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5SCLOSE_F() failed", errnum
                                 FLUSH(unit = ERROR_UNIT)
                                 STOP
                             END IF
