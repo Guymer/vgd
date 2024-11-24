@@ -4,6 +4,7 @@
 # NOTE: See https://docs.python.org/3.12/library/multiprocessing.html#the-spawn-and-forkserver-start-methods
 if __name__ == "__main__":
     # Import standard modules ...
+    import argparse
     import os
 
     # Import special modules ...
@@ -18,6 +19,27 @@ if __name__ == "__main__":
         import pyguymer3.image
     except:
         raise Exception("\"pyguymer3\" is not installed; you need to have the Python module from https://github.com/Guymer/PyGuymer3 located somewhere in your $PYTHONPATH") from None
+
+    # **************************************************************************
+
+    # Create argument parser and parse the arguments ...
+    parser = argparse.ArgumentParser(
+           allow_abbrev = False,
+            description = "Convert BIN files to PNG images.",
+        formatter_class = argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "--debug",
+        action = "store_true",
+          help = "print debug messages",
+    )
+    parser.add_argument(
+        "--timeout",
+        default = 60.0,
+           help = "the timeout for any requests/subprocess calls (in seconds)",
+           type = float,
+    )
+    args = parser.parse_args()
 
     # **************************************************************************
 
@@ -69,5 +91,8 @@ if __name__ == "__main__":
         pyguymer3.image.save_array_as_image(
             elev.astype(numpy.uint8),
             iname,
-            ct = "rainbow",
+                 ct = "rainbow",
+              debug = args.debug,
+               form = "png",
+            timeout = args.timeout,
         )
