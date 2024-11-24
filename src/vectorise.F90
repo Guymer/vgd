@@ -27,17 +27,17 @@ PROGRAM main
     USE H5D,                ONLY:   H5DCLOSE_F,                                 &
                                     H5DCREATE_F,                                &
                                     H5DWRITE_F
-    USE H5F,                ONLY:   H5FCLOSE_F,                                 &
+    USE H5F,                ONLY:   H5F_ACC_TRUNC_F,                            &
+                                    H5FCLOSE_F,                                 &
                                     H5FCREATE_F
     USE H5G,                ONLY:   H5GCLOSE_F,                                 &
                                     H5GCREATE_F
-    USE H5S,                ONLY:   H5SCLOSE_F,                                 &
+    USE H5S,                ONLY:   H5S_SCALAR_F,                               &
+                                    H5SCLOSE_F,                                 &
                                     H5SCREATE_F,                                &
-                                    H5SCREATE_SIMPLE_F,                         &
-                                    H5S_SCALAR_F
+                                    H5SCREATE_SIMPLE_F
     USE H5T,                ONLY:   H5_INTEGER_KIND,                            &
                                     H5_REAL_KIND,                               &
-                                    H5F_ACC_TRUNC_F,                            &
                                     HID_T,                                      &
                                     HSIZE_T
 
