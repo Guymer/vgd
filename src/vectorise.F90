@@ -19,6 +19,7 @@ PROGRAM main
                                     sub_load_array_from_BIN,                    &
                                     sub_save_array_as_PGM
     USE H5LIB,              ONLY:   H5CLOSE_F,                                  &
+                                    H5KIND_TO_TYPE,                             &
                                     H5OPEN_F
     USE H5D,                ONLY:   H5DCLOSE_F,                                 &
                                     H5DCREATE_F,                                &
@@ -30,7 +31,8 @@ PROGRAM main
     USE H5LT,               ONLY:   H5LTSET_ATTRIBUTE_INT_F
     USE H5S,                ONLY:   H5SCLOSE_F,                                 &
                                     H5SCREATE_SIMPLE_F
-    USE H5T,                ONLY:   H5F_ACC_TRUNC_F,                            &
+    USE H5T,                ONLY:   H5_REAL_KIND,                               &
+                                    H5F_ACC_TRUNC_F,                            &
                                     H5T_IEEE_F64LE,                             &
                                     HID_T,                                      &
                                     HSIZE_T
@@ -315,7 +317,10 @@ PROGRAM main
                                   loc_id = gUnit,                               &
                                     name = "lats",                              &
                                 space_id = sUnit,                               &
-                                 type_id = H5T_IEEE_F64LE                       &
+                                 type_id = H5KIND_TO_TYPE(                      &
+                                     flag = H5_REAL_KIND,                       &
+                                    ikind = REAL64                              &
+                                )                                               &
                             )
                             IF(errnum /= 0)THEN
                                 WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5DCREATE_F() failed", errnum
@@ -328,7 +333,10 @@ PROGRAM main
                                         buf = C_LOC(lats(1_INT64)),             &
                                     dset_id = dUnit,                            &
                                      hdferr = errnum,                           &
-                                mem_type_id = H5T_IEEE_F64LE                    &
+                                mem_type_id = H5KIND_TO_TYPE(                   &
+                                     flag = H5_REAL_KIND,                       &
+                                    ikind = REAL64                              &
+                                )                                               &
                             )
                             IF(errnum /= 0)THEN
                                 WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5DWRITE_F() failed", errnum
