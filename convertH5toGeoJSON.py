@@ -4,6 +4,7 @@
 # NOTE: See https://docs.python.org/3.12/library/multiprocessing.html#the-spawn-and-forkserver-start-methods
 if __name__ == "__main__":
     # Import standard modules ...
+    import argparse
     import glob
     import os
 
@@ -29,6 +30,21 @@ if __name__ == "__main__":
         import pyguymer3.geo
     except:
         raise Exception("\"pyguymer3\" is not installed; you need to have the Python module from https://github.com/Guymer/PyGuymer3 located somewhere in your $PYTHONPATH") from None
+
+    # **************************************************************************
+
+    # Create argument parser and parse the arguments ...
+    parser = argparse.ArgumentParser(
+           allow_abbrev = False,
+            description = "Convert H5 files to GeoJSON files.",
+        formatter_class = argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "--indiv",
+        action = "store_true",
+          help = "save each Polygon individually too",
+    )
+    args = parser.parse_args()
 
     # **************************************************************************
 
@@ -174,20 +190,20 @@ if __name__ == "__main__":
 
         # **********************************************************************
 
-        continue
+        # Check if the user wants to save each Polygon individually ...
+        if args.indiv:
+            # Loop over Polygons ...
+            for iPoly, poly in enumerate(polys):
+                # Deduce GeoJSON name ...
+                jName = f'{hName.removesuffix(".h5")}.poly={iPoly:06d}.geojson'
 
-        # Loop over Polygons ...
-        for iPoly, poly in enumerate(polys):
-            # Deduce GeoJSON name ...
-            jName = f'{hName.removesuffix(".h5")}.poly={iPoly:06d}.geojson'
+                print(f"Making \"{jName}\" ...")
 
-            print(f"Making \"{jName}\" ...")
-
-            # Save Polygon as a GeoJSON ...
-            with open(jName, "wt", encoding = "utf-8") as fObj:
-                geojson.dump(
-                    poly,
-                    fObj,
-                       indent = 4,
-                    sort_keys = True,
-                )
+                # Save Polygon as a GeoJSON ...
+                with open(jName, "wt", encoding = "utf-8") as fObj:
+                    geojson.dump(
+                        poly,
+                        fObj,
+                           indent = 4,
+                        sort_keys = True,
+                    )
