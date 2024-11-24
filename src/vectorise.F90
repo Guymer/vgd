@@ -1,10 +1,10 @@
 PROGRAM main
     ! NOTE: For documentation see:
     !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5.html
+    !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_a.html
     !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_d.html
     !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_f.html
     !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_g.html
-    !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_l_t.html
     !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_s.html
     !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_t.html
     USE ISO_C_BINDING,      ONLY:   C_LOC
@@ -21,6 +21,9 @@ PROGRAM main
     USE H5LIB,              ONLY:   H5CLOSE_F,                                  &
                                     H5KIND_TO_TYPE,                             &
                                     H5OPEN_F
+    USE H5A,                ONLY:   H5ACLOSE_F,                                 &
+                                    H5ACREATE_F,                                &
+                                    H5AWRITE_F
     USE H5D,                ONLY:   H5DCLOSE_F,                                 &
                                     H5DCREATE_F,                                &
                                     H5DWRITE_F
@@ -28,12 +31,13 @@ PROGRAM main
                                     H5FCREATE_F
     USE H5G,                ONLY:   H5GCLOSE_F,                                 &
                                     H5GCREATE_F
-    USE H5LT,               ONLY:   H5LTSET_ATTRIBUTE_INT_F
     USE H5S,                ONLY:   H5SCLOSE_F,                                 &
-                                    H5SCREATE_SIMPLE_F
-    USE H5T,                ONLY:   H5_REAL_KIND,                               &
+                                    H5SCREATE_F,                                &
+                                    H5SCREATE_SIMPLE_F,                         &
+                                    H5S_SCALAR_F
+    USE H5T,                ONLY:   H5_INTEGER_KIND,                            &
+                                    H5_REAL_KIND,                               &
                                     H5F_ACC_TRUNC_F,                            &
-                                    H5T_IEEE_F64LE,                             &
                                     HID_T,                                      &
                                     HSIZE_T
 
@@ -50,7 +54,7 @@ PROGRAM main
     INTEGER(kind = INT8), ALLOCATABLE, DIMENSION(:, :)                          :: used
     INTEGER(kind = INT16)                                                       :: z
     INTEGER(kind = INT16), ALLOCATABLE, DIMENSION(:, :)                         :: elev
-    INTEGER(kind = INT64)                                                       :: iRing
+    INTEGER(kind = INT64), TARGET                                               :: iRing
     INTEGER(kind = INT64)                                                       :: iScale
     INTEGER(kind = INT64)                                                       :: iStep
     INTEGER(kind = INT64)                                                       :: ix
@@ -79,6 +83,7 @@ PROGRAM main
 
     ! Declare HDF5 variables ...
     CHARACTER(len = 256)                                                        :: groupName
+    INTEGER(kind = HID_T)                                                       :: aUnit
     INTEGER(kind = HID_T)                                                       :: dUnit
     INTEGER(kind = HID_T)                                                       :: gUnit
     INTEGER(kind = HID_T)                                                       :: hUnit
@@ -364,7 +369,10 @@ PROGRAM main
                                   loc_id = gUnit,                               &
                                     name = "lons",                              &
                                 space_id = sUnit,                               &
-                                 type_id = H5T_IEEE_F64LE                       &
+                                 type_id = H5KIND_TO_TYPE(                      &
+                                     flag = H5_REAL_KIND,                       &
+                                    ikind = REAL64                              &
+                                )                                               &
                             )
                             IF(errnum /= 0)THEN
                                 WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5DCREATE_F() failed", errnum
@@ -379,7 +387,10 @@ PROGRAM main
                                 ),                                              &
                                     dset_id = dUnit,                            &
                                      hdferr = errnum,                           &
-                                mem_type_id = H5T_IEEE_F64LE                    &
+                                mem_type_id = H5KIND_TO_TYPE(                   &
+                                     flag = H5_REAL_KIND,                       &
+                                    ikind = REAL64                              &
+                                )                                               &
                             )
                             IF(errnum /= 0)THEN
                                 WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5DWRITE_F() failed", errnum
@@ -511,18 +522,72 @@ PROGRAM main
             DEALLOCATE(elev)
             DEALLOCATE(used)
 
-            ! Create HDF5 attribute ...
-            ! TODO: This incorrectly makes a length-1 array rather than a scalar.
-            CALL H5LTSET_ATTRIBUTE_INT_F(                                       &
-                attr_name = "nRings",                                           &
-                      buf = (/ INT(iRing) /),                                   &
-                  errcode = errnum,                                             &
-                   loc_id = hUnit,                                              &
-                 obj_name = "/",                                                &
-                     size = 1_HSIZE_T                                           &
+            ! Create HDF5 dataspace ...
+            CALL H5SCREATE_F(                                                   &
+                classtype = H5S_SCALAR_F,                                       &
+                   hdferr = errnum,                                             &
+                 space_id = sUnit                                               &
             )
             IF(errnum /= 0)THEN
-                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5LTSET_ATTRIBUTE_INT_F() failed", errnum
+                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5SCREATE_F() failed", errnum
+                FLUSH(unit = ERROR_UNIT)
+                STOP
+            END IF
+
+            ! Create HDF5 attribute ...
+            CALL H5ACREATE_F(                                                   &
+                 attr_id = aUnit,                                               &
+                  hdferr = errnum,                                              &
+                  loc_id = hUnit,                                               &
+                    name = "nRings",                                            &
+                space_id = sUnit,                                               &
+                 type_id = H5KIND_TO_TYPE(                                      &
+                     flag = H5_INTEGER_KIND,                                    &
+                    ikind = INT64                                               &
+                )                                                               &
+            )
+            IF(errnum /= 0)THEN
+                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5ACREATE_F() failed", errnum
+                FLUSH(unit = ERROR_UNIT)
+                STOP
+            END IF
+
+            ! Write HDF5 attribute ...
+            CALL H5AWRITE_F(                                                    &
+                       buf = C_LOC(                                             &
+                    iRing                                                       &
+                ),                                                              &
+                   attr_id = aUnit,                                             &
+                    hdferr = errnum,                                            &
+                memtype_id = H5KIND_TO_TYPE(                                    &
+                     flag = H5_INTEGER_KIND,                                    &
+                    ikind = INT64                                               &
+                )                                                               &
+            )
+            IF(errnum /= 0)THEN
+                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5AWRITE_F() failed", errnum
+                FLUSH(unit = ERROR_UNIT)
+                STOP
+            END IF
+
+            ! Close HDF5 attribute ...
+            CALL H5ACLOSE_F(                                                    &
+                attr_id = aUnit,                                                &
+                 hdferr = errnum                                                &
+            )
+            IF(errnum /= 0)THEN
+                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5ACLOSE_F() failed", errnum
+                FLUSH(unit = ERROR_UNIT)
+                STOP
+            END IF
+
+            ! Close HDF5 dataspace ...
+            CALL H5SCLOSE_F(                                                    &
+                  hdferr = errnum,                                              &
+                space_id = sUnit                                                &
+            )
+            IF(errnum /= 0)THEN
+                WRITE(fmt = '("ERROR: ", a, ". ERRNUM = ", i3, ".")', unit = ERROR_UNIT) "H5SCLOSE_F() failed", errnum
                 FLUSH(unit = ERROR_UNIT)
                 STOP
             END IF
