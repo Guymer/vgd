@@ -37,6 +37,7 @@ if __name__ == "__main__":
         # Deduce GeoJSON name and skip this HDF5 file if it already exists ...
         jName = f'{hName.removesuffix(".h5")}.geojson'
         if os.path.exists(jName):
+            print(f"Skipping \"{jName}\" (it already exists).")
             continue
 
         # Extract scale and skip if it is too detailed ...
@@ -88,6 +89,7 @@ if __name__ == "__main__":
 
         # Skip this collection if there aren't any Polygons ...
         if len(polys) == 0:
+            print("  Skipping (there aren't any Polygons).")
             continue
 
         # **********************************************************************
