@@ -516,7 +516,7 @@ PROGRAM main
             END DO
 
             ! Save mask ...
-            CALL sub_save_array_as_PGM(used, TRIM(fnamePGM))
+            CALL sub_save_array_as_PGM(nxScaled, nyScaled, used, TRIM(fnamePGM))
 
             ! Clean up ...
             DEALLOCATE(elev)
