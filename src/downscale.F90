@@ -2,7 +2,8 @@ PROGRAM main
     USE ISO_FORTRAN_ENV
     USE mod_safe,           ONLY:   sub_allocate_array,                         &
                                     sub_load_array_from_BIN,                    &
-                                    sub_save_array_as_BIN
+                                    sub_save_array_as_BIN,                      &
+                                    sub_shrink_array
 
     IMPLICIT NONE
 
@@ -19,16 +20,8 @@ PROGRAM main
     ! Declare variables ...
     INTEGER(kind = INT16), ALLOCATABLE, DIMENSION(:, :)                         :: elev
     INTEGER(kind = INT16), ALLOCATABLE, DIMENSION(:, :)                         :: elevScaled
-    INTEGER(kind = INT32), ALLOCATABLE, DIMENSION(:, :)                         :: elevTile
     INTEGER(kind = INT64)                                                       :: iscale
-    INTEGER(kind = INT64)                                                       :: ix
-    INTEGER(kind = INT64)                                                       :: iy
-    INTEGER(kind = INT64)                                                       :: ixLo
-    INTEGER(kind = INT64)                                                       :: iyLo
-    INTEGER(kind = INT64)                                                       :: ixHi
-    INTEGER(kind = INT64)                                                       :: iyHi
-    INTEGER(kind = INT64)                                                       :: scale
-    REAL(kind = REAL64)                                                         :: tileSize
+    INTEGER(kind = INT64)                                                       :: shrinkScale
 
     ! Declare FORTRAN variables ...
     CHARACTER(len = 256)                                                        :: fname
@@ -49,61 +42,28 @@ PROGRAM main
     ! Loop over scales ...
     DO iscale = 1_INT64, 5_INT64
         ! Determine scale ...
-        scale = 2_INT64 ** iscale                                               ! [km]
-
-        ! Check scale ...
-        IF(MOD(nx, scale) /= 0_INT64)THEN
-            WRITE(fmt = '("ERROR: ", a, ".")', unit = ERROR_UNIT) '"nx" is not an integer multiple of "scale"'
-            FLUSH(unit = ERROR_UNIT)
-            STOP
-        END IF
-        IF(MOD(ny, scale) /= 0_INT64)THEN
-            WRITE(fmt = '("ERROR: ", a, ".")', unit = ERROR_UNIT) '"ny" is not an integer multiple of "scale"'
-            FLUSH(unit = ERROR_UNIT)
-            STOP
-        END IF
+        shrinkScale = 2_INT64 ** iscale                                         ! [km]
 
         ! Determine file name and skip if it exists ...
-        WRITE(fname, fmt = '("../data/scale=", i2.2, "km.bin")') scale
+        WRITE(fname, fmt = '("../data/scale=", i2.2, "km.bin")') shrinkScale
         INQUIRE(file = TRIM(fname), exist = fexist)
         IF(fexist)THEN
-            WRITE(fmt = '("Skipping ", i2, "km.")', unit = OUTPUT_UNIT) scale
+            WRITE(fmt = '("Skipping ", i2, "km.")', unit = OUTPUT_UNIT) shrinkScale
             FLUSH(unit = OUTPUT_UNIT)
             CYCLE
         END IF
 
-        WRITE(fmt = '("Making ", i2, "km ...")', unit = OUTPUT_UNIT) scale
+        WRITE(fmt = '("Making ", i2, "km ...")', unit = OUTPUT_UNIT) shrinkScale
         FLUSH(unit = OUTPUT_UNIT)
 
-        ! Create short-hand ...
-        tileSize = REAL(scale * scale, kind = REAL64)
-
-        ! Allocate arrays ...
-        CALL sub_allocate_array(elevScaled, "elevScaled", nx / scale, ny / scale, .TRUE._INT8)
-        CALL sub_allocate_array(elevTile, "elevTile", scale, scale, .TRUE._INT8)
-
-        ! Loop over x-axis tiles ...
-        DO ix = 1_INT64, nx / scale
-            ! Find the extent of the tile ...
-            ixlo = (ix - 1_INT64) * scale + 1_INT64                             ! [px]
-            ixhi =  ix            * scale                                       ! [px]
-
-            ! Loop over y-axis tiles ...
-            DO iy = 1_INT64, ny / scale
-                ! Find the extent of the tile ...
-                iylo = (iy - 1_INT64) * scale + 1_INT64                         ! [px]
-                iyhi =  iy            * scale                                   ! [px]
-
-                ! Increase the precision of the data and assign it to the tile ...
-                elevTile = INT(elev(ixlo:ixhi, iylo:iyhi), kind = INT32)        ! [m]
-
-                ! Find the average elevation in this tile ...
-                elevScaled(ix, iy) = INT(REAL(SUM(elevTile), kind = REAL64) / tileSize, kind = INT16)   ! [m]
-            END DO
-        END DO
-
-        ! Clean up ...
-        DEALLOCATE(elevTile)
+        ! Allocate array and populate it ...
+        CALL sub_shrink_array(                                                  &
+                     nx = nx,                                                   &
+                     ny = ny,                                                   &
+                    arr = elev,                                                 &
+            shrinkScale = shrinkScale,                                          &
+            shrunkenArr = elevScaled                                            &
+        )
 
         ! Save array ...
         CALL sub_save_array_as_BIN(elevScaled, TRIM(fname))
