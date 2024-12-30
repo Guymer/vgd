@@ -71,4 +71,7 @@ PROGRAM main
         ! Clean up ...
         DEALLOCATE(elevScaled)
     END DO
+
+    ! Clean up ...
+    DEALLOCATE(elev)
 END PROGRAM main
