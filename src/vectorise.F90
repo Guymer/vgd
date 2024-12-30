@@ -7,6 +7,8 @@ PROGRAM main
     !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_g.html
     !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_s.html
     !         * https://support.hdfgroup.org/documentation/hdf5/latest/group___f_h5_t.html
+
+    ! Import standard modules ...
     USE ISO_C_BINDING,      ONLY:   C_LOC
     USE ISO_FORTRAN_ENV,    ONLY:   ERROR_UNIT,                                 &
                                     INT8,                                       &
@@ -14,10 +16,8 @@ PROGRAM main
                                     INT64,                                      &
                                     OUTPUT_UNIT,                                &
                                     REAL64
-    USE mod_funcs
-    USE mod_safe,           ONLY:   sub_allocate_array,                         &
-                                    sub_load_array_from_BIN,                    &
-                                    sub_save_array_as_PGM
+
+    ! Import special modules ...
     USE H5LIB,              ONLY:   H5CLOSE_F,                                  &
                                     H5KIND_TO_TYPE,                             &
                                     H5OPEN_F
@@ -40,6 +40,12 @@ PROGRAM main
                                     H5_REAL_KIND,                               &
                                     HID_T,                                      &
                                     HSIZE_T
+
+    ! Import my modules ...
+    USE mod_funcs
+    USE mod_safe,           ONLY:   sub_allocate_array,                         &
+                                    sub_load_array_from_BIN,                    &
+                                    sub_save_array_as_PGM
 
     IMPLICIT NONE
 
