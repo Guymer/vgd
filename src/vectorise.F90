@@ -18,28 +18,19 @@ PROGRAM main
                                     REAL64
 
     ! Import special modules ...
-    USE H5LIB,              ONLY:   H5CLOSE_F,                                  &
-                                    H5KIND_TO_TYPE,                             &
-                                    H5OPEN_F
-    USE H5A,                ONLY:   H5ACLOSE_F,                                 &
-                                    H5ACREATE_F,                                &
-                                    H5AWRITE_F
-    USE H5D,                ONLY:   H5DCLOSE_F,                                 &
-                                    H5DCREATE_F,                                &
-                                    H5DWRITE_F
-    USE H5F,                ONLY:   H5F_ACC_TRUNC_F,                            &
-                                    H5FCLOSE_F,                                 &
-                                    H5FCREATE_F
-    USE H5G,                ONLY:   H5GCLOSE_F,                                 &
-                                    H5GCREATE_F
-    USE H5S,                ONLY:   H5S_SCALAR_F,                               &
-                                    H5SCLOSE_F,                                 &
-                                    H5SCREATE_F,                                &
-                                    H5SCREATE_SIMPLE_F
-    USE H5T,                ONLY:   H5_INTEGER_KIND,                            &
-                                    H5_REAL_KIND,                               &
-                                    HID_T,                                      &
-                                    HSIZE_T
+    ! HACK: I would love to use "ONLY" in these module imports to only import
+    !       the functions, parameters, subroutines and variables that I actually
+    !       use. Unfortunately, the H5 library puts these in different modules
+    !       in different versions of the H5 library - so if I am strict on my
+    !       MacBook Pro and it all works then it will fail on GitHub CI because
+    !       GitHub has a different version of the H5 library installed.
+    USE H5LIB
+    USE H5A
+    USE H5D
+    USE H5F
+    USE H5G
+    USE H5S
+    USE H5T
 
     ! Import my modules ...
     USE mod_funcs
