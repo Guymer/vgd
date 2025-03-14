@@ -38,6 +38,8 @@ jobs:
                     echo "::notice $(which h5fc)"
                     echo "::notice $(which pip)"
                     echo "::notice $(which python)"
+                    echo "::notice $(apt show libhdf5-dev)"
+                    echo "::notice $(apt show hdf5-helpers)"
             -
                 name: Compile the FORTRAN code
                 run: |
