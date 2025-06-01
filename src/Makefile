@@ -2,12 +2,11 @@
 # *                                 VARIABLES                                  *
 # ******************************************************************************
 
+COVERAGE  ?= false
 DEBUG     ?= false
 FTNLIB    ?= $(abspath ../fortranlib)
-DEBG_OPTS := -g -fcheck=all
 LANG_OPTS := -fopenmp -ffree-form -ffree-line-length-none -frecursive -fno-unsafe-math-optimizations -frounding-math -fsignaling-nans -fPIC
 WARN_OPTS := -Wall -Wextra -Waliasing -Wcharacter-truncation -Wconversion-extra -Wimplicit-interface -Wimplicit-procedure -Wunderflow -Wtabs
-OPTM_OPTS := -O2
 MACH_OPTS := -march=native -m64
 
 # ******************************************************************************
@@ -24,8 +23,12 @@ RM      := $(shell which rm         2> /dev/null || echo "ERROR")
 # *                             DYNAMIC VARIABLES                              *
 # ******************************************************************************
 
-ifeq ($(DEBUG), true)
-	LANG_OPTS += $(DEBG_OPTS)
+ifeq ($(COVERAGE), true)
+	LANG_OPTS += -g -O0 -fprofile-abs-path --coverage
+else ifeq ($(DEBUG), true)
+	LANG_OPTS += -g -fcheck=all
+else
+	LANG_OPTS += -O2
 endif
 
 # ******************************************************************************
@@ -71,8 +74,8 @@ all:				compile
 
 # "gmake -r clean"   = removes the compiled code
 clean:
-	$(RM) -f downscale vectorise *.mod *.o
-	$(MAKE) -r -C $(FTNLIB) FC=$(FC) PYTHON3=$(PYTHON3) clean
+	$(RM) -f downscale vectorise *.gcda *.gcno *.mod *.o *.so
+	$(MAKE) -r -C $(FTNLIB) COVERAGE=$(COVERAGE) DEBUG=$(DEBUG) FC=$(FC) PYTHON3=$(PYTHON3) clean
 
 # "gmake -r compile" = compiles the code
 compile:			downscale													\
@@ -103,27 +106,27 @@ help:
 
 $(FTNLIB)/%.mod																	\
 $(FTNLIB)/%.o &:	$(FTNLIB)/%.F90
-	$(MAKE) -r -C $(FTNLIB) DEBUG=$(DEBUG) FC=$(FC) PYTHON3=$(PYTHON3) $*.o
+	$(MAKE) -r -C $(FTNLIB) COVERAGE=$(COVERAGE) DEBUG=$(DEBUG) FC=$(FC) PYTHON3=$(PYTHON3) $*.o
 
 mod_funcs.mod																	\
 mod_funcs.o &:		$(FTNLIB)/mod_safe.mod										\
 					$(MOD_FUNCS_SRC)
-	$(FC) -c $(LANG_OPTS) $(WARN_OPTS) $(OPTM_OPTS) $(MACH_OPTS) -I$(FTNLIB) mod_funcs.F90
+	$(FC) -c $(LANG_OPTS) $(WARN_OPTS) $(MACH_OPTS) -I$(FTNLIB) mod_funcs.F90
 
 downscale.o:		$(FTNLIB)/mod_safe.mod										\
 					downscale.F90
-	$(FC) -c $(LANG_OPTS) $(WARN_OPTS) $(OPTM_OPTS) $(MACH_OPTS) -I$(FTNLIB) downscale.F90 -o $@
+	$(FC) -c $(LANG_OPTS) $(WARN_OPTS) $(MACH_OPTS) -I$(FTNLIB) downscale.F90 -o $@
 
 vectorise.o:		$(FTNLIB)/mod_safe.mod										\
 					mod_funcs.mod												\
 					vectorise.F90
-	$(FC) -c $(LANG_OPTS) $(WARN_OPTS) $(OPTM_OPTS) $(MACH_OPTS) -I$(FTNLIB) vectorise.F90 -o $@
+	$(FC) -c $(LANG_OPTS) $(WARN_OPTS) $(MACH_OPTS) -I$(FTNLIB) vectorise.F90 -o $@
 
 downscale:			$(FTNLIB)/mod_safe.o										\
 					downscale.o
-	$(FC) $(LANG_OPTS) $(WARN_OPTS) $(OPTM_OPTS) $(MACH_OPTS) downscale.o $(FTNLIB)/mod_safe.o -o $@
+	$(FC) $(LANG_OPTS) $(WARN_OPTS) $(MACH_OPTS) downscale.o $(FTNLIB)/mod_safe.o -o $@
 
 vectorise:			$(FTNLIB)/mod_safe.o										\
 					mod_funcs.o													\
 					vectorise.o
-	$(FC) $(LANG_OPTS) $(WARN_OPTS) $(OPTM_OPTS) $(MACH_OPTS) vectorise.o $(FTNLIB)/mod_safe.o mod_funcs.o -o $@
+	$(FC) $(LANG_OPTS) $(WARN_OPTS) $(MACH_OPTS) vectorise.o $(FTNLIB)/mod_safe.o mod_funcs.o -o $@
