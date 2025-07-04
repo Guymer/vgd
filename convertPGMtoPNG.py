@@ -64,7 +64,7 @@ if __name__ == "__main__":
         os.remove(pgm)
 
         # Optimize PNG ...
-        pyguymer3.image.optimize_image(
+        pyguymer3.image.optimise_image(
             png,
               debug = args.debug,
               strip = True,

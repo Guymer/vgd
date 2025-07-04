@@ -91,7 +91,7 @@ if __name__ == "__main__":
         pyguymer3.image.save_array_as_image(
             elev.astype(numpy.uint8),
             iname,
-                 ct = "rainbow",
+                 ct = "turbo",
               debug = args.debug,
                form = "png",
             timeout = args.timeout,
