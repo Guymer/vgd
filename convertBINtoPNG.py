@@ -5,6 +5,7 @@
 if __name__ == "__main__":
     # Import standard modules ...
     import argparse
+    import json
     import os
 
     # Import special modules ...
@@ -43,6 +44,11 @@ if __name__ == "__main__":
 
     # **************************************************************************
 
+    # Load colour tables and create short-hand ...
+    with open(f"{pyguymer3.__path__[0]}/data/json/colourTables.json", "rt", encoding = "utf-8") as fObj:
+        colourTables = json.load(fObj)
+    turbo = numpy.array(colourTables["turbo"]).astype(numpy.uint8)
+
     # Define the size of the dataset ...
     nx = 43200                                                                  # [px]
     ny = 21600                                                                  # [px]
@@ -80,19 +86,32 @@ if __name__ == "__main__":
         elev = numpy.fromfile(
             bname,
             dtype = numpy.int16,
-        ).astype(numpy.float64).reshape(ny // scale, nx // scale)               # [m]
+        ).astype(numpy.float64).reshape(ny // scale, nx // scale, 1)            # [m]
 
         # Scale data from 0 to 255, mapping it from 0m to 2000m ...
         elev = 255.0 * elev / 2000.0
         numpy.place(elev, elev <   0.0,   0.0)
         numpy.place(elev, elev > 255.0, 255.0)
+        elev = elev.astype(numpy.uint8)
 
         # Make PNG ...
-        pyguymer3.image.save_array_as_image(
-            elev.astype(numpy.uint8),
-            iname,
-                 ct = "turbo",
-              debug = args.debug,
-               form = "png",
-            timeout = args.timeout,
+        src = pyguymer3.image.makePng(
+            elev,
+            calcAdaptive = True,
+             calcAverage = True,
+                calcNone = True,
+               calcPaeth = True,
+                 calcSub = True,
+                  calcUp = True,
+                 choices = "all",
+                   debug = args.debug,
+                     dpi = None,
+                  levels = [9,],
+               memLevels = [9,],
+                 modTime = None,
+                palUint8 = turbo,
+              strategies = None,
+                  wbitss = [15,],
         )
+        with open(iname, "wb") as fObj:
+            fObj.write(src)

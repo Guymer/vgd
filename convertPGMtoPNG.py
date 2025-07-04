@@ -58,7 +58,7 @@ if __name__ == "__main__":
             im = iObj.convert("RGB")
 
         # Save image as a PNG ...
-        im.save(png, optimize = True)
+        im.save(png, optimise = True)
 
         # Remove PGM ...
         os.remove(pgm)
