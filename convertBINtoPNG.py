@@ -35,6 +35,13 @@ if __name__ == "__main__":
           help = "print debug messages",
     )
     parser.add_argument(
+        "--maximum-size",
+        default = 250.0,
+           dest = "maxSize",
+           help = "the maximum size of image to make a PNG for (in mega-pixels)",
+           type = float,
+    )
+    parser.add_argument(
         "--timeout",
         default = 60.0,
            help = "the timeout for any requests/subprocess calls (in seconds)",
@@ -76,7 +83,7 @@ if __name__ == "__main__":
         mega = float((nx // scale) * (ny // scale)) / 1.0e6                     # [Mpx]
 
         # Skip this scale if the PNG would be too big ...
-        if mega > 250.0:
+        if mega > args.maxSize:
             print(f"Skipping \"{iname}\" (the PNG would be {mega:.1f} Mpx).")
             continue
 
