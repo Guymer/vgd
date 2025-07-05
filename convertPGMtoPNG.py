@@ -44,15 +44,6 @@ if __name__ == "__main__":
 
     # **************************************************************************
 
-    # Create short-hand ...
-    pal = numpy.array(
-        [
-            [  0,   0,   0],
-            [127, 127, 127],
-        ],
-        dtype = numpy.uint8,
-    )
-
     # Loop over PGMs ...
     for pgm in sorted(glob.glob("data/scale=??km/elev=????m.pgm")):
         # Create short-hand and skip this PGM if the PNG already exists ...
@@ -66,17 +57,9 @@ if __name__ == "__main__":
         with PIL.Image.open(pgm) as iObj:
             img = numpy.array(iObj)
 
-        # Convert the NumPy array in to a paletted image with only two colours ...
-        # NOTE: I know that the input PGM is greyscale with only two colours:
-        #         * black = (  0,   0,   0)
-        #         *  grey = (127, 127, 127)
-        assert list(numpy.unique(img)) == [0, 127], f"\"{pgm}\" is not made of just the two expected colours"
-        img = img.reshape((img.shape[0], img.shape[1], 1))
-        numpy.place(img, img == 127, 1)
-
         # Save NumPy array as a PNG ...
         src = pyguymer3.image.makePng(
-            img,
+            img.reshape((img.shape[0], img.shape[1], 1)),
             calcAdaptive = True,
              calcAverage = True,
                 calcNone = True,
@@ -89,7 +72,7 @@ if __name__ == "__main__":
                   levels = [9,],
                memLevels = [9,],
                  modTime = None,
-                palUint8 = pal,
+                palUint8 = None,
               strategies = None,
                   wbitss = [15,],
         )
