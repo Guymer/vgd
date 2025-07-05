@@ -10,6 +10,10 @@ if __name__ == "__main__":
 
     # Import special modules ...
     try:
+        import numpy
+    except:
+        raise Exception("\"numpy\" is not installed; run \"pip install --user numpy\"") from None
+    try:
         import PIL
         import PIL.Image
         PIL.Image.MAX_IMAGE_PIXELS = 1024 * 1024 * 1024                         # [px]
@@ -36,37 +40,58 @@ if __name__ == "__main__":
         action = "store_true",
           help = "print debug messages",
     )
-    parser.add_argument(
-        "--timeout",
-        default = 60.0,
-           help = "the timeout for any requests/subprocess calls (in seconds)",
-           type = float,
-    )
     args = parser.parse_args()
 
     # **************************************************************************
 
+    # Create short-hand ...
+    pal = numpy.array(
+        [
+            [  0,   0,   0],
+            [127, 127, 127],
+        ],
+        dtype = numpy.uint8,
+    )
+
     # Loop over PGMs ...
     for pgm in sorted(glob.glob("data/scale=??km/elev=????m.pgm")):
+        # Create short-hand and skip this PGM if the PNG already exists ...
+        png = f'{pgm.removesuffix(".pgm")}.png'
+        if os.path.exists(png):
+            continue
+
         print(f"Converting \"{pgm}\" ...")
 
-        # Deduce PNG name ...
-        png = f'{pgm.removesuffix(".pgm")}.png'
-
-        # Open image as RGB (even if it is paletted) ...
+        # Open PGM and convert to NumPy array ...
         with PIL.Image.open(pgm) as iObj:
-            im = iObj.convert("RGB")
+            img = numpy.array(iObj)
 
-        # Save image as a PNG ...
-        im.save(png, optimise = True)
+        # Convert the NumPy array in to a paletted image with only two colours ...
+        # NOTE: I know that the input PGM is greyscale with only two colours:
+        #         * black = (  0,   0,   0)
+        #         *  grey = (127, 127, 127)
+        assert list(numpy.unique(img)) == [0, 127], f"\"{pgm}\" is not made of just the two expected colours"
+        img = img.reshape((img.shape[0], img.shape[1], 1))
+        numpy.place(img, img == 127, 1)
 
-        # Remove PGM ...
-        os.remove(pgm)
-
-        # Optimize PNG ...
-        pyguymer3.image.optimise_image(
-            png,
-              debug = args.debug,
-              strip = True,
-            timeout = args.timeout,
+        # Save NumPy array as a PNG ...
+        src = pyguymer3.image.makePng(
+            img,
+            calcAdaptive = True,
+             calcAverage = True,
+                calcNone = True,
+               calcPaeth = True,
+                 calcSub = True,
+                  calcUp = True,
+                 choices = "all",
+                   debug = args.debug,
+                     dpi = None,
+                  levels = [9,],
+               memLevels = [9,],
+                 modTime = None,
+                palUint8 = pal,
+              strategies = None,
+                  wbitss = [15,],
         )
+        with open(png, "wb") as fObj:
+            fObj.write(src)
