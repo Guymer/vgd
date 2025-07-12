@@ -66,32 +66,31 @@ if __name__ == "__main__":
         scale = pow(2, iscale)                                                  # [km]
 
         # Determine file names ...
-        bname = f"data/scale={scale:02d}km.bin"
-        iname = f"data/scale={scale:02d}km.png"
+        bName = f"data/scale={scale:02d}km.bin"
+        pName = f"data/scale={scale:02d}km.png"
 
         # Skip this scale if the BIN does not exist ...
-        if not os.path.exists(bname):
-            print(f"Skipping \"{iname}\" (BIN is missing).")
+        if not os.path.exists(bName):
+            print(f"Skipping \"{bName}\" (the BIN is missing).")
             continue
 
         # Skip this scale if the PNG already exists ...
-        if os.path.exists(iname):
-            print(f"Skipping \"{iname}\" (PNG already exists).")
+        if os.path.exists(pName):
+            print(f"Skipping \"{bName}\" (the PNG already exists).")
             continue
 
-        # Find out how many mega-pixels there are at this scale ...
+        # Find out how many mega-pixels there are at this scale and skip this
+        # scale if the PNG would be too big ...
         mega = float((nx // scale) * (ny // scale)) / 1.0e6                     # [Mpx]
-
-        # Skip this scale if the PNG would be too big ...
         if mega > args.maxSize:
-            print(f"Skipping \"{iname}\" (the PNG would be {mega:.1f} Mpx).")
+            print(f"Skipping \"{bName}\" (the PNG would be {mega:,.1f} Mpx).")
             continue
 
-        print(f"Making \"{iname}\" ...")
+        print(f"Making \"{pName}\" ...")
 
         # Load dataset as 64-bit floats ...
         elev = numpy.fromfile(
-            bname,
+            bName,
             dtype = numpy.int16,
         ).astype(numpy.float64).reshape(ny // scale, nx // scale, 1)            # [m]
 
@@ -120,5 +119,5 @@ if __name__ == "__main__":
               strategies = None,
                   wbitss = [15,],
         )
-        with open(iname, "wb") as fObj:
+        with open(pName, "wb") as fObj:
             fObj.write(src)
