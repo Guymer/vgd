@@ -210,7 +210,7 @@ PROGRAM main
             CALL sub_load_array_from_BIN(elev, TRIM(fnameBIN))                  ! [m]
 
             ! HACK: Make sure that none of the plateaus touch the edge of the
-            !       map and my pathfinding algorithm won't work if it walks off
+            !       map as my pathfinding algorithm won't work if it walks off
             !       the edge.
             elev( 1_INT64, :) = 0_INT16                                         ! [m]
             elev(nxScaled, :) = 0_INT16                                         ! [m]
@@ -513,6 +513,12 @@ PROGRAM main
             END DO
 
             ! Save mask ...
+            ! NOTE: "used" is a 8-bit integer, so saving it as a PGM is only a
+            !       couple of bytes larger than saving it as a BIN. Therefore,
+            !       I will make an exception to my normal programming style and
+            !       I will write it out as a PGM directly rather than as a BIN.
+            !       This means that the Python script to convert it to a PNG has
+            !       to use "PIL.Image.open()" rather than "numpy.fromfile()".
             CALL sub_save_array_as_PGM(nxScaled, nyScaled, used, TRIM(fnamePGM))
 
             ! Clean up ...
