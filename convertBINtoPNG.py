@@ -41,12 +41,6 @@ if __name__ == "__main__":
            help = "the maximum size of image to make a PNG for (in mega-pixels)",
            type = float,
     )
-    parser.add_argument(
-        "--timeout",
-        default = 60.0,
-           help = "the timeout for any requests/subprocess calls (in seconds)",
-           type = float,
-    )
     args = parser.parse_args()
 
     # **************************************************************************
@@ -94,8 +88,8 @@ if __name__ == "__main__":
             dtype = numpy.int16,
         ).astype(numpy.float64).reshape(ny // scale, nx // scale, 1)            # [m]
 
-        # Scale data from 0 to 255, mapping it from 0m to 2000m ...
-        elev = 255.0 * elev / 2000.0
+        # Scale data from 0 to 255, mapping it from 0 m to 2,000 m ...
+        elev = 255.0 * (elev / 2000.0)
         numpy.place(elev, elev <   0.0,   0.0)
         numpy.place(elev, elev > 255.0, 255.0)
         elev = elev.astype(numpy.uint8)
