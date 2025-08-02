@@ -22,6 +22,11 @@ if __name__ == "__main__":
         formatter_class = argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
+        "--debug",
+        action = "store_true",
+          help = "print debug messages",
+    )
+    parser.add_argument(
         "--timeout",
         default = 60.0,
            help = "the timeout for any requests/subprocess calls (in seconds)",
@@ -42,6 +47,7 @@ if __name__ == "__main__":
                 sess,
                 "https://www.ngdc.noaa.gov/mgg/topo/DATATILES/elev/all10g.zip",
                 "all10g.zip",
+                  debug = args.debug,
                 timeout = args.timeout,
                  verify = True,
             ):
