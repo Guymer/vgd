@@ -6,6 +6,7 @@ if __name__ == "__main__":
     # Import standard modules ...
     import argparse
     import glob
+    import json
     import os
 
     # Import special modules ...
@@ -15,7 +16,6 @@ if __name__ == "__main__":
         raise Exception("\"h5py\" is not installed; run \"pip install --user h5py\"") from None
     try:
         import geojson
-        geojson.geometry.Geometry.__init__.__defaults__ = (None, False, 12)     # NOTE: See https://github.com/jazzband/geojson/issues/135#issuecomment-596509669
     except:
         raise Exception("\"geojson\" is not installed; run \"pip install --user geojson\"") from None
     try:
@@ -45,6 +45,12 @@ if __name__ == "__main__":
           help = "save each Polygon individually too",
     )
     args = parser.parse_args()
+
+    # **************************************************************************
+
+    print(f"The resolution of Earth is {0.001 * pyguymer3.RESOLUTION_OF_EARTH:,.1f} km/°.")
+    print(f"The finest GLOBE scale is {1.0:,.1f} km.")
+    print(f"The finest GLOBE resolution is {1000.0 / pyguymer3.RESOLUTION_OF_EARTH:,.4f} °.")
 
     # **************************************************************************
 
@@ -180,12 +186,28 @@ if __name__ == "__main__":
         coll = shapely.geometry.collection.GeometryCollection(polys)
 
         # Save GeometryCollection as a GeoJSON ...
+        # NOTE: As of 4/Aug/2025, the Python module "geojson" just converts the
+        #       object to a Python dictionary and then it just calls the
+        #       standard "json.dump()" function to format the Python dictionary
+        #       as text. There is no way to specify the precision of the written
+        #       string. Fortunately, if you have no shame, then you can load and
+        #       then dump the string again, see:
+        #         * https://stackoverflow.com/a/29066406
         with open(jName, "wt", encoding = "utf-8") as fObj:
-            geojson.dump(
-                coll,
+            json.dump(
+                json.loads(
+                    geojson.dumps(
+                        coll,
+                        ensure_ascii = False,
+                              indent = 4,
+                           sort_keys = True,
+                    ),
+                    parse_float = lambda x: round(float(x), 4),                 # NOTE: 0.0001° is approximately 11.1 m.
+                ),
                 fObj,
-                   indent = 4,
-                sort_keys = True,
+                ensure_ascii = False,
+                      indent = 4,
+                   sort_keys = True,
             )
 
         # **********************************************************************
@@ -200,10 +222,27 @@ if __name__ == "__main__":
                 print(f"Making \"{jName}\" ...")
 
                 # Save Polygon as a GeoJSON ...
+                # NOTE: As of 4/Aug/2025, the Python module "geojson" just
+                #       converts the object to a Python dictionary and then it
+                #       just calls the standard "json.dump()" function to format
+                #       the Python dictionary as text. There is no way to
+                #       specify the precision of the written string.
+                #       Fortunately, if you have no shame, then you can load and
+                #       then dump the string again, see:
+                #         * https://stackoverflow.com/a/29066406
                 with open(jName, "wt", encoding = "utf-8") as fObj:
-                    geojson.dump(
-                        poly,
+                    json.dump(
+                        json.loads(
+                            geojson.dumps(
+                                poly,
+                                ensure_ascii = False,
+                                      indent = 4,
+                                   sort_keys = True,
+                            ),
+                            parse_float = lambda x: round(float(x), 4),
+                        ),
                         fObj,
-                           indent = 4,
-                        sort_keys = True,
+                        ensure_ascii = False,
+                              indent = 4,
+                           sort_keys = True,
                     )
