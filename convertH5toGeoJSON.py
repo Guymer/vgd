@@ -55,7 +55,7 @@ if __name__ == "__main__":
     # **************************************************************************
 
     # Loop over HDF5 files ...
-    for hName in sorted(glob.glob("data/scale=??km/elev=????m.h5")):
+    for hName in sorted(glob.glob("data/scale=??km/elev=????m.h5"))[::-1]:
         # Deduce GeoJSON name and skip this HDF5 file if it already exists ...
         jName = f'{hName.removesuffix(".h5")}.geojson'
         if os.path.exists(jName):
@@ -239,7 +239,7 @@ if __name__ == "__main__":
                                       indent = 4,
                                    sort_keys = True,
                             ),
-                            parse_float = lambda x: round(float(x), 4),
+                            parse_float = lambda x: round(float(x), 4),         # NOTE: 0.0001° is approximately 11.1 m.
                         ),
                         fObj,
                         ensure_ascii = False,
