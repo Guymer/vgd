@@ -67,7 +67,6 @@ if __name__ == "__main__":
         if scale in [
             "scale=01km",
             "scale=02km",
-            "scale=04km",
         ]:
             print(f"Skipping \"{jName}\" (it is too detailed).")
             continue
