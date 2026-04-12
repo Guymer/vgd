@@ -55,11 +55,11 @@ if __name__ == "__main__":
 
         # Open PGM and convert to NumPy array ...
         with PIL.Image.open(pgm) as iObj:
-            img = numpy.array(iObj)
+            img = numpy.array(iObj).reshape((iObj.height, iObj.width, 1))
 
         # Save NumPy array as a PNG ...
         src = pyguymer3.image.makePng(
-            img.reshape((img.shape[0], img.shape[1], 1)),
+            img,
             calcAdaptive = True,
              calcAverage = True,
                 calcNone = True,
