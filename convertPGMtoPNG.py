@@ -78,3 +78,6 @@ if __name__ == "__main__":
         )
         with open(png, "wb") as fObj:
             fObj.write(src)
+
+        # Remove PGM ...
+        os.remove(pgm)
