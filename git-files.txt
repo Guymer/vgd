@@ -14,6 +14,7 @@ convertPGMtoPNG.py
 convertZIPtoBIN.py
 downloadGLOBE.py
 fortranlib
+git-files.txt
 IMG_2875.jpg
 LICENCE.txt
 README.md
