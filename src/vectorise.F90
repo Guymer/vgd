@@ -209,6 +209,8 @@ PROGRAM main
             CALL sub_allocate_array(elev, "elev", nxScaled, nyScaled, .TRUE._INT8)
             CALL sub_load_array_from_BIN(elev, TRIM(fnameBIN))                  ! [m]
 
+            ! TODO: Think about adding ghost pixels.
+
             ! HACK: Make sure that none of the plateaus touch the edge of the
             !       map as my pathfinding algorithm won't work if it walks off
             !       the edge.
